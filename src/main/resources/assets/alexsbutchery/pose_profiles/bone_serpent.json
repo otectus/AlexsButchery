@@ -1,0 +1,44 @@
+{
+  "head": [
+    "head",
+    "hornL",
+    "hornR",
+    "middlehorn",
+    "headtop",
+    "jaw"
+  ],
+  "cut_1": [],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "segments": {
+    "parts": [
+      {
+        "entity": "alexsmobs:bone_serpent_part",
+        "data": "{TailPart:0b}",
+        "spacing": 0.9,
+        "count": 7
+      },
+      {
+        "entity": "alexsmobs:bone_serpent_part",
+        "data": "{TailPart:1b}",
+        "spacing": 0.9
+      }
+    ],
+    "turn": 18,
+    "wave": 3,
+    "truncate_cuts": true,
+    "hanging_spacing": 0.8
+  },
+  "skeletal": true
+}

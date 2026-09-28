@@ -1,0 +1,6 @@
+{
+  "parent": "alexsbutchery:block/rug",
+  "textures": {
+    "pelt": "alexsbutchery:block/rug/snow_leopard_pelt"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:tiger_rug",
+  "name": "Pelt Rugs",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:grizzly_bear_rug,alexsbutchery:bison_rug,alexsbutchery:tiger_rug,alexsbutchery:snow_leopard_rug",
+      "text": "Three pelts around the head make a rug that spreads over the floor, head and all. Rugs dampen vibrations like carpet.",
+      "title": "Pelt Rugs"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "alexsbutchery:rug/grizzly_bear_rug"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "alexsbutchery:rug/bison_rug"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "alexsbutchery:rug/tiger_rug"
+    },
+    {
+      "type": "patchouli:crafting",
+      "recipe": "alexsbutchery:rug/snow_leopard_rug"
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 8
+}

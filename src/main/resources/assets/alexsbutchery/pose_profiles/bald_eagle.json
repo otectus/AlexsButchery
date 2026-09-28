@@ -1,0 +1,35 @@
+{
+  "head": [
+    "head",
+    "topHead",
+    "beak1",
+    "beak2"
+  ],
+  "cut_1": [
+    "legL",
+    "footL",
+    "legR",
+    "footR",
+    "wingR",
+    "wingL",
+    "feathersR",
+    "tipR",
+    "feathersL",
+    "tipL"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [
+    "hood",
+    "hood_tie"
+  ],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "legL",
+      "legR"
+    ],
+    "pitch": 0
+  }
+}

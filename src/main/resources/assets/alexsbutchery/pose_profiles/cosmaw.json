@@ -1,0 +1,33 @@
+{
+  "head": [
+    "mouthArm1",
+    "mouthArm2",
+    "mouth",
+    "topJaw",
+    "lowerJaw",
+    "eyesBase",
+    "leftEye",
+    "rightEye"
+  ],
+  "cut_1": [
+    "leftArm",
+    "rightArm",
+    "leftFin",
+    "rightFin",
+    "leftLeg",
+    "rightLeg",
+    "tailFin"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [],
+  "head_root": "mouth",
+  "hanging": {
+    "pitch": -90,
+    "attachment": [
+      "tail",
+      "body"
+    ]
+  }
+}

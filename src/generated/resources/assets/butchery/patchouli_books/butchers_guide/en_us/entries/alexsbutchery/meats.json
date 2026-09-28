@@ -1,0 +1,19 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:raw_venison",
+  "name": "Wild Meats",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:raw_venison,alexsbutchery:raw_game_bird,alexsbutchery:raw_big_cat_meat,alexsbutchery:raw_bear_meat,alexsbutchery:raw_primate_meat,alexsbutchery:raw_reptile_meat,alexsbutchery:raw_bushmeat,alexsbutchery:raw_whale_meat,alexsbutchery:raw_seal_meat,alexsbutchery:raw_shark_meat,alexsbutchery:raw_elephant_meat,alexsbutchery:raw_rhino_meat,alexsbutchery:raw_cosmaw_meat,alexsbutchery:raw_endergrade_meat,alexsbutchery:raw_laviathan_meat,alexsbutchery:raw_straddler_meat,alexsbutchery:raw_froststalker_meat,alexsbutchery:raw_tusklin_meat,alexsbutchery:raw_emu_meat,alexsbutchery:raw_warped_toad_leg,alexsbutchery:raw_bunfungus_meat,alexsbutchery:raw_mantis_shrimp_tail,alexsbutchery:void_worm_flesh",
+      "text": "New meats cook in a furnace, smoker or over a campfire. On Farmer's Delight's cutting board a knife turns them into minced beef, chicken cuts, bacon or cod slices for its recipes.",
+      "title": "Wild Meats"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "With Alex's Mobs Delight installed, the carcasses yield that mod's bear, emu, seal, whale and other meats instead of ours, so there is only one of each."
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 9
+}

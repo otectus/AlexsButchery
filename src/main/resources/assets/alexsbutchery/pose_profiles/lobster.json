@@ -1,0 +1,36 @@
+{
+  "head": [
+    "antenna_left",
+    "antenna_right"
+  ],
+  "cut_1": [
+    "arm_left",
+    "hand_left",
+    "arm_right",
+    "hand_right",
+    "legs_left",
+    "legs_right"
+  ],
+  "cut_2": [
+    "tail",
+    "tail2"
+  ],
+  "hide": [],
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "pitch": -90,
+    "attachment": [
+      "tail",
+      "body"
+    ]
+  }
+}

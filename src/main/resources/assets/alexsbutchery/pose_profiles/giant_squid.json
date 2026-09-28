@@ -1,0 +1,39 @@
+{
+  "head": [
+    "head",
+    "beak",
+    "left_eye",
+    "right_eye"
+  ],
+  "cut_1": [
+    "left_BackMidTentacle",
+    "left_BackMidTentacleEnd",
+    "right_BackMidTentacle",
+    "right_BackMidTentacleEnd",
+    "left_BackTentacle",
+    "left_BackTentacleEnd",
+    "right_BackTentacle",
+    "right_BackTentacleEnd"
+  ],
+  "cut_2": [
+    "left_FrontTentacle",
+    "left_FrontTentacleEnd",
+    "left_FrontMidTentacle",
+    "left_FrontMidTentacleEnd",
+    "right_FrontMidTentacle",
+    "right_FrontMidTentacleEnd",
+    "right_FrontTentacle"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  }
+}

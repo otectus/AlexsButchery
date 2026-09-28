@@ -1,0 +1,32 @@
+{
+  "parent": "alexsbutchery:wild_game",
+  "criteria": {
+    "birds_of_a_feather": {
+      "conditions": {
+        "action": "pluck"
+      },
+      "trigger": "alexsbutchery:butchering"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.birds_of_a_feather.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "alexsbutchery:roadrunner_carcass"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.birds_of_a_feather.title"
+    }
+  },
+  "requirements": [
+    [
+      "birds_of_a_feather"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

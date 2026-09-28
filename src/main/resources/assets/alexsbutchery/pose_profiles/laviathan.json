@@ -1,0 +1,34 @@
+{
+  "head": [
+    "head",
+    "bottom_jaw",
+    "top_jaw"
+  ],
+  "cut_1": [
+    "leftArm",
+    "rightArm",
+    "leftLeg",
+    "rightLeg"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [
+    "shell",
+    "vent1",
+    "vent2",
+    "vent3",
+    "vent4"
+  ],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  }
+}

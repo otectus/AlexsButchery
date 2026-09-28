@@ -1,0 +1,19 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:elephant_carcass",
+  "name": "Floor Carcasses",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:elephant_carcass,alexsbutchery:laviathan_carcass,alexsbutchery:sea_bear_carcass,alexsbutchery:orca_carcass,alexsbutchery:cachalot_whale_carcass,alexsbutchery:giant_squid_carcass,alexsbutchery:warped_mosco_carcass,alexsbutchery:void_worm_carcass",
+      "text": "Elephants, whales, the Laviathan and a few other giants are far too heavy to carry. Their carcass falls where they die. Bleed it with a cleaver right there, 2000 mB of blood, then cut it up in place.",
+      "title": "Where It Falls"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A blood grate under the carcass still catches the blood; without one it pools on the ground. The Void Worm needs Butchery's boss tool, the netherite cleaver, for the killing blow before it leaves a carcass at all."
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 2
+}

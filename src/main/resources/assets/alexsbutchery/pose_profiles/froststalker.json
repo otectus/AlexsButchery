@@ -1,0 +1,28 @@
+{
+  "head": [
+    "head",
+    "horn",
+    "jaw"
+  ],
+  "cut_1": [
+    "icespikesleft",
+    "icespikesright",
+    "armleft",
+    "armright",
+    "legleft",
+    "legright"
+  ],
+  "cut_2": [
+    "tail1",
+    "tail2"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "legleft",
+      "legright"
+    ],
+    "pitch": 0
+  }
+}

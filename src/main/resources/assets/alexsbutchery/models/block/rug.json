@@ -1,0 +1,18 @@
+{
+  "parent": "minecraft:block/block",
+  "render_type": "minecraft:cutout",
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "#pelt"
+  },
+  "elements": [
+    {
+      "from": [-8, 0.05, -8],
+      "to": [24, 0.3, 24],
+      "faces": {
+        "up": {"uv": [0, 0, 16, 16], "texture": "#pelt"},
+        "down": {"uv": [0, 16, 16, 0], "texture": "#pelt"}
+      }
+    }
+  ]
+}

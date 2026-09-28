@@ -1,0 +1,41 @@
+{
+  "parent": "alexsbutchery:big_game_hunter",
+  "criteria": {
+    "ties_the_room_together": {
+      "conditions": {
+        "location": [
+          {
+            "condition": "minecraft:location_check",
+            "predicate": {
+              "block": {
+                "tag": "alexsbutchery:rugs"
+              }
+            }
+          }
+        ]
+      },
+      "trigger": "minecraft:placed_block"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.ties_the_room_together.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "alexsbutchery:tiger_rug"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.ties_the_room_together.title"
+    }
+  },
+  "requirements": [
+    [
+      "ties_the_room_together"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

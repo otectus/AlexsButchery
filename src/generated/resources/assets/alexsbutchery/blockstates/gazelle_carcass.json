@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "blockstate=0,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=0,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=0,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=0,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    }
+  }
+}

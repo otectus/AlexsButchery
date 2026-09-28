@@ -1,0 +1,64 @@
+{
+  "head": [
+    "head",
+    "head2",
+    "fangs",
+    "antenna_left",
+    "antenna_left_r1",
+    "antenna_right",
+    "antenna_right_r1"
+  ],
+  "cut_1": [
+    "leftLegBodyF",
+    "leftLeg2BodyF",
+    "rightLegBodyF",
+    "rightLegBodyF2",
+    "leftLegBodyB",
+    "leftLeg2BodyB",
+    "rightLegBodyB",
+    "rightLegBodyB2",
+    "leftLegTailF",
+    "leftLeg2TailF",
+    "rightLegTailF",
+    "rightLeg2TailF",
+    "leftLegTailB",
+    "leftLegTailB2",
+    "rightLegTailB",
+    "rightLegTailB2"
+  ],
+  "cut_2": [
+    "tail",
+    "leftTail",
+    "leftTailEnd",
+    "rightTail",
+    "rightTailEnd"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "segments": {
+    "parts": [
+      {
+        "entity": "alexsmobs:centipede_body",
+        "spacing": 0.84,
+        "count": 4
+      },
+      {
+        "entity": "alexsmobs:centipede_tail",
+        "spacing": 0.84
+      }
+    ],
+    "turn": 22,
+    "wave": 2,
+    "hanging_spacing": 0.85
+  }
+}

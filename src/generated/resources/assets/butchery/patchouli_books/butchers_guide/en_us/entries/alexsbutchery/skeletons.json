@@ -1,0 +1,15 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:tiger_skeleton",
+  "name": "Skeletons",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:grizzly_bear_skeleton,alexsbutchery:gazelle_skeleton,alexsbutchery:gorilla_skeleton,alexsbutchery:kangaroo_skeleton,alexsbutchery:elephant_skeleton,alexsbutchery:rhinoceros_skeleton,alexsbutchery:bison_skeleton,alexsbutchery:moose_skeleton,alexsbutchery:tiger_skeleton,alexsbutchery:snow_leopard_skeleton,alexsbutchery:maned_wolf_skeleton,alexsbutchery:anteater_skeleton,alexsbutchery:gelada_monkey_skeleton,alexsbutchery:dropbear_skeleton,alexsbutchery:froststalker_skeleton,alexsbutchery:tusklin_skeleton,alexsbutchery:bunfungus_skeleton,alexsbutchery:warped_toad_skeleton,alexsbutchery:cosmaw_skeleton,alexsbutchery:endergrade_skeleton,alexsbutchery:straddler_skeleton,alexsbutchery:laviathan_skeleton,alexsbutchery:seal_skeleton,alexsbutchery:sea_bear_skeleton,alexsbutchery:anaconda_skeleton,alexsbutchery:rattlesnake_skeleton,alexsbutchery:komodo_dragon_skeleton,alexsbutchery:crocodile_skeleton,alexsbutchery:caiman_skeleton,alexsbutchery:alligator_snapping_turtle_skeleton,alexsbutchery:terrapin_skeleton,alexsbutchery:emu_skeleton,alexsbutchery:roadrunner_skeleton,alexsbutchery:shoebill_skeleton,alexsbutchery:seagull_skeleton,alexsbutchery:crow_skeleton,alexsbutchery:blue_jay_skeleton,alexsbutchery:toucan_skeleton,alexsbutchery:potoo_skeleton,alexsbutchery:bald_eagle_skeleton,alexsbutchery:hummingbird_skeleton,alexsbutchery:soul_vulture_skeleton,alexsbutchery:raccoon_skeleton,alexsbutchery:skunk_skeleton,alexsbutchery:tasmanian_devil_skeleton,alexsbutchery:platypus_skeleton,alexsbutchery:jerboa_skeleton,alexsbutchery:sugar_glider_skeleton,alexsbutchery:capuchin_monkey_skeleton,alexsbutchery:rain_frog_skeleton,alexsbutchery:orca_skeleton,alexsbutchery:cachalot_whale_skeleton,alexsbutchery:hammerhead_shark_skeleton,alexsbutchery:frilled_shark_skeleton,alexsbutchery:catfish_skeleton,alexsbutchery:blobfish_skeleton,alexsbutchery:cosmic_cod_skeleton,alexsbutchery:flying_fish_skeleton,alexsbutchery:devils_hole_pupfish_skeleton,alexsbutchery:mudskipper_skeleton,alexsbutchery:farseer_skeleton",
+      "text": "Pour a $(item)bottle of sulfuric acid$() on a whole carcass, fresh or drained, lying or hanging. It fizzes for eleven seconds and leaves the creature's skeleton in its place. Creatures without bones leave none.",
+      "title": "Bare Bones"
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 7
+}

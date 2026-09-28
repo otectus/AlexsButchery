@@ -1,0 +1,39 @@
+{
+  "head": [
+    "head",
+    "antenna_left",
+    "antenna_right",
+    "fangs"
+  ],
+  "cut_1": [
+    "legfront_left",
+    "legfront_right",
+    "legmid_left",
+    "legmid_right",
+    "legback_left",
+    "legback_right"
+  ],
+  "cut_2": [],
+  "hide": [
+    "leaf",
+    "leaf_r1"
+  ],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "pitch": -90,
+    "attachment": [
+      "abdomen",
+      "body"
+    ]
+  }
+}

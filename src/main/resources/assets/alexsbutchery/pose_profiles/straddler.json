@@ -1,0 +1,22 @@
+{
+  "head": [
+    "hair",
+    "horn_left",
+    "hair_left",
+    "horn_right",
+    "hair_right"
+  ],
+  "cut_1": [
+    "leg_left",
+    "leg_right"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "hanging": {
+    "legs": [
+      "leg_left",
+      "leg_right"
+    ],
+    "pitch": 0
+  }
+}

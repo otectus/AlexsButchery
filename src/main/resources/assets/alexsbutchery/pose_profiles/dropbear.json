@@ -1,0 +1,31 @@
+{
+  "head": [
+    "head",
+    "nose",
+    "ear_left",
+    "ear_right",
+    "jaw"
+  ],
+  "cut_1": [
+    "leg_left",
+    "leg_right",
+    "arm_left",
+    "claws_left",
+    "arm_right",
+    "claws_right"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "leg_left",
+      "leg_right"
+    ],
+    "pitch": -45,
+    "forelegs": [
+      "arm_left",
+      "arm_right"
+    ]
+  }
+}

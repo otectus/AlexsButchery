@@ -1,0 +1,19 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="${mod_license}"
+
+[[mods]]
+modId="alexsbutchery_smoketest"
+version="${mod_version}"
+displayName="Alex's Butchery Smoke Test Agent"
+authors="Otectus"
+description='''
+Test-only agent. Inert unless -Dalexsbutchery.smoketest.output is set. Never ship this.
+'''
+
+[[dependencies.alexsbutchery_smoketest]]
+    modId="alexsbutchery"
+    mandatory=true
+    versionRange="[${mod_version},)"
+    ordering="AFTER"
+    side="BOTH"

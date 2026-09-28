@@ -1,0 +1,30 @@
+{
+  "head": [
+    "tongue",
+    "left_eye",
+    "right_eye"
+  ],
+  "cut_1": [
+    "left_arm",
+    "right_arm",
+    "left_leg",
+    "right_leg"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "attachment": [
+      "body"
+    ]
+  }
+}

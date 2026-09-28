@@ -1,0 +1,27 @@
+{
+  "head": [
+    "hair_left",
+    "hair_right"
+  ],
+  "cut_1": [],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [],
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "pitch": -90,
+    "attachment": [
+      "body"
+    ]
+  }
+}

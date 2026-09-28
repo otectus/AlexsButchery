@@ -1,0 +1,172 @@
+{
+  "values": [
+    {
+      "id": "alexsmobs:bear_fur",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:gazelle_horn",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:kangaroo_meat",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:kangaroo_hide",
+      "required": false
+    },
+    {
+      "id": "minecraft:beef",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:bison_fur",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:moose_ribs",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:moose_antler",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:dropbear_claw",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:froststalker_horn",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:straddlite",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:rattlesnake_rattle",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:crocodile_scute",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:spiked_scute",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:soul_heart",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:raccoon_tail",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:cachalot_whale_tooth",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:ambergris",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:shark_tooth",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:serrated_shark_tooth",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:lost_tentacle",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:raw_catfish",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:blobfish",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:cosmic_cod",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:flying_fish",
+      "required": false
+    },
+    {
+      "id": "minecraft:tropical_fish",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:lobster_tail",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:banana_slug_slime",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:cockroach_wing",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:mosquito_proboscis",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:blood_sac",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:tarantula_hawk_wing",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:centipede_leg",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:warped_muscle",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:hemolymph_sac",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:mungal_spores",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:bone_serpent_tooth",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:skreecher_soul",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:farseer_arm",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:mimicream",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:void_worm_eye",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:void_worm_mandible",
+      "required": false
+    }
+  ]
+}

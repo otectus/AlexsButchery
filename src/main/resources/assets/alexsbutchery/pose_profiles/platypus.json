@@ -1,0 +1,41 @@
+{
+  "head": [
+    "head",
+    "beak"
+  ],
+  "cut_1": [
+    "arm_left",
+    "arm_right",
+    "leg_left",
+    "leg_right"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [
+    "fedora"
+  ],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "legs": [
+      "leg_left",
+      "leg_right"
+    ],
+    "pitch": -90,
+    "leg_pitch": 90,
+    "forelegs": [
+      "arm_left",
+      "arm_right"
+    ]
+  }
+}

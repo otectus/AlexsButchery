@@ -1,0 +1,15 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:lobster_carcass",
+  "name": "Bloodless Creatures",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:mimic_octopus_carcass,alexsbutchery:catfish_carcass,alexsbutchery:blobfish_carcass,alexsbutchery:cosmic_cod_carcass,alexsbutchery:flying_fish_carcass,alexsbutchery:devils_hole_pupfish_carcass,alexsbutchery:mudskipper_carcass,alexsbutchery:lobster_carcass,alexsbutchery:mantis_shrimp_carcass,alexsbutchery:triops_carcass,alexsbutchery:stradpole_carcass,alexsbutchery:banana_slug_carcass,alexsbutchery:leafcutter_ant_carcass,alexsbutchery:cockroach_carcass,alexsbutchery:fly_carcass,alexsbutchery:tarantula_hawk_carcass,alexsbutchery:centipede_carcass,alexsbutchery:mungus_carcass,alexsbutchery:bone_serpent_carcass,alexsbutchery:skelewag_carcass,alexsbutchery:skreecher_carcass,alexsbutchery:mimicube_carcass",
+      "text": "Fish, insects, crustaceans and the creatures of bone, slime and fungus have nothing to drain. Their carcass is cut up right away with the cleaver, on the ground or on a hook.",
+      "title": "No Blood to Drain"
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 4
+}

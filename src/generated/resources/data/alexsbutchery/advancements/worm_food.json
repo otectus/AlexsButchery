@@ -1,0 +1,33 @@
+{
+  "parent": "alexsbutchery:where_it_lies",
+  "criteria": {
+    "worm_food": {
+      "conditions": {
+        "action": "cut_3",
+        "mob": "void_worm"
+      },
+      "trigger": "alexsbutchery:butchering"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.worm_food.description"
+    },
+    "frame": "challenge",
+    "hidden": false,
+    "icon": {
+      "item": "alexsbutchery:void_worm_carcass"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.worm_food.title"
+    }
+  },
+  "requirements": [
+    [
+      "worm_food"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

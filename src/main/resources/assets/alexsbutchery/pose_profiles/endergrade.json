@@ -1,0 +1,32 @@
+{
+  "head": [
+    "head",
+    "mouth"
+  ],
+  "cut_1": [
+    "legbackL",
+    "legbackR",
+    "legmidL",
+    "legmidR",
+    "legfrontL",
+    "legfrontR"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "legbackL",
+      "legbackR"
+    ],
+    "pitch": -45,
+    "forelegs": [
+      "legmidL",
+      "legmidR",
+      "legfrontL",
+      "legfrontR"
+    ]
+  }
+}

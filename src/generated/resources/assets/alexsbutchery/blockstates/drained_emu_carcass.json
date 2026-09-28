@@ -1,0 +1,124 @@
+{
+  "variants": {
+    "blockstate=0,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=0,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=0,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=0,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=1,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=2,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=2,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=2,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=2,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=3,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=3,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=3,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=3,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=4,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=4,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=4,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=4,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=5,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=5,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=5,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=5,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=6,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=6,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=6,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=6,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=7,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=7,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=7,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=7,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=8,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=8,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=8,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=8,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=9,facing=east": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=9,facing=north": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=9,facing=south": {
+      "model": "alexsbutchery:block/carcass"
+    },
+    "blockstate=9,facing=west": {
+      "model": "alexsbutchery:block/carcass"
+    }
+  }
+}

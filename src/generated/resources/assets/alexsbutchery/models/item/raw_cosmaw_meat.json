@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "alexsbutchery:item/raw_cosmaw_meat"
+  }
+}

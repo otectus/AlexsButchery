@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_bison_hide": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "alexsbutchery:bison_hide"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "alexsbutchery:rug/bison_rug"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_bison_hide",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "alexsbutchery:rug/bison_rug"
+    ]
+  },
+  "sends_telemetry_event": false
+}

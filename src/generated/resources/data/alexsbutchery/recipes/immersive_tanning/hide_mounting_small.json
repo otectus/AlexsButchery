@@ -1,0 +1,30 @@
+{
+  "type": "immersive_tanning:hide_mounting",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "immersive_tanning"
+    }
+  ],
+  "ingredient": [
+    {
+      "item": "alexsbutchery:rattlesnake_skin"
+    },
+    {
+      "item": "alexsbutchery:caiman_hide"
+    },
+    {
+      "item": "alexsbutchery:raccoon_pelt"
+    },
+    {
+      "item": "alexsbutchery:skunk_pelt"
+    },
+    {
+      "item": "alexsbutchery:tasmanian_devil_pelt"
+    },
+    {
+      "item": "alexsbutchery:platypus_pelt"
+    }
+  ],
+  "size": "small"
+}

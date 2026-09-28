@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "alexsbutchery:bison_hide"
+    },
+    "b": {
+      "item": "alexsbutchery:bison_head"
+    }
+  },
+  "pattern": [
+    "aba",
+    " a "
+  ],
+  "result": {
+    "item": "alexsbutchery:bison_rug"
+  },
+  "show_notification": true
+}

@@ -1,0 +1,44 @@
+{
+  "head": [
+    "head",
+    "upperJaw",
+    "leftEye",
+    "rightEye"
+  ],
+  "cut_1": [
+    "leftLeg",
+    "leftFoot",
+    "rightLeg",
+    "rightFoot",
+    "leftArm",
+    "leftArmPivot",
+    "leftHand",
+    "rightArm",
+    "rightArmPivot",
+    "rightHand"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "legs": [
+      "leftLeg",
+      "rightLeg"
+    ],
+    "pitch": 0,
+    "forelegs": [
+      "leftArm",
+      "rightArm"
+    ]
+  }
+}

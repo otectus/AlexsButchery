@@ -1,0 +1,24 @@
+{
+  "head": [
+    "heart",
+    "head"
+  ],
+  "cut_1": [
+    "leftWing",
+    "rightWing",
+    "leftLeg",
+    "leftFoot",
+    "rightLeg",
+    "rightFoot"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "leftLeg",
+      "rightLeg"
+    ],
+    "pitch": 0
+  }
+}

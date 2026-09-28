@@ -1,0 +1,18 @@
+{
+  "type": "butchery:taxidermy",
+  "ingredients": [
+    {
+      "item": "minecraft:wheat"
+    },
+    {
+      "item": "alexsbutchery:elephant_head"
+    },
+    {
+      "item": "butchery:large_empty_head_mount"
+    }
+  ],
+  "output": {
+    "count": 1,
+    "item": "alexsbutchery:elephant_head_mount"
+  }
+}

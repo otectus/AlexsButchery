@@ -1,0 +1,31 @@
+{
+  "head": [
+    "mouth"
+  ],
+  "cut_1": [
+    "left_fin",
+    "right_fin"
+  ],
+  "cut_2": [
+    "tail",
+    "tail_tip"
+  ],
+  "hide": [],
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "pitch": -90,
+    "attachment": [
+      "tail",
+      "body"
+    ]
+  }
+}

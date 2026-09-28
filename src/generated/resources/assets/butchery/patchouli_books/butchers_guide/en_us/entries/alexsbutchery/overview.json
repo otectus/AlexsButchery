@@ -1,0 +1,19 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:kangaroo_carcass",
+  "name": "Alex's Mobs Carcasses",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:grizzly_bear_carcass,alexsbutchery:gazelle_carcass,alexsbutchery:gorilla_carcass,alexsbutchery:kangaroo_carcass,alexsbutchery:elephant_carcass,alexsbutchery:rhinoceros_carcass,alexsbutchery:bison_carcass,alexsbutchery:moose_carcass,alexsbutchery:tiger_carcass,alexsbutchery:snow_leopard_carcass,alexsbutchery:maned_wolf_carcass,alexsbutchery:anteater_carcass,alexsbutchery:gelada_monkey_carcass,alexsbutchery:dropbear_carcass,alexsbutchery:froststalker_carcass,alexsbutchery:tusklin_carcass,alexsbutchery:bunfungus_carcass,alexsbutchery:warped_toad_carcass,alexsbutchery:cosmaw_carcass,alexsbutchery:endergrade_carcass,alexsbutchery:straddler_carcass,alexsbutchery:laviathan_carcass,alexsbutchery:seal_carcass,alexsbutchery:sea_bear_carcass,alexsbutchery:anaconda_carcass,alexsbutchery:rattlesnake_carcass,alexsbutchery:komodo_dragon_carcass,alexsbutchery:crocodile_carcass,alexsbutchery:caiman_carcass,alexsbutchery:alligator_snapping_turtle_carcass,alexsbutchery:terrapin_carcass,alexsbutchery:emu_carcass,alexsbutchery:roadrunner_carcass,alexsbutchery:shoebill_carcass,alexsbutchery:seagull_carcass,alexsbutchery:crow_carcass,alexsbutchery:blue_jay_carcass,alexsbutchery:toucan_carcass,alexsbutchery:potoo_carcass,alexsbutchery:bald_eagle_carcass,alexsbutchery:hummingbird_carcass,alexsbutchery:soul_vulture_carcass,alexsbutchery:raccoon_carcass,alexsbutchery:skunk_carcass,alexsbutchery:tasmanian_devil_carcass,alexsbutchery:platypus_carcass,alexsbutchery:jerboa_carcass,alexsbutchery:sugar_glider_carcass,alexsbutchery:capuchin_monkey_carcass,alexsbutchery:rain_frog_carcass,alexsbutchery:orca_carcass,alexsbutchery:cachalot_whale_carcass,alexsbutchery:hammerhead_shark_carcass,alexsbutchery:frilled_shark_carcass,alexsbutchery:giant_squid_carcass,alexsbutchery:mimic_octopus_carcass,alexsbutchery:catfish_carcass,alexsbutchery:blobfish_carcass,alexsbutchery:cosmic_cod_carcass,alexsbutchery:flying_fish_carcass,alexsbutchery:devils_hole_pupfish_carcass,alexsbutchery:mudskipper_carcass,alexsbutchery:lobster_carcass,alexsbutchery:mantis_shrimp_carcass,alexsbutchery:triops_carcass,alexsbutchery:stradpole_carcass,alexsbutchery:banana_slug_carcass,alexsbutchery:leafcutter_ant_carcass,alexsbutchery:cockroach_carcass,alexsbutchery:fly_carcass,alexsbutchery:crimson_mosquito_carcass,alexsbutchery:tarantula_hawk_carcass,alexsbutchery:centipede_carcass,alexsbutchery:warped_mosco_carcass,alexsbutchery:mungus_carcass,alexsbutchery:bone_serpent_carcass,alexsbutchery:skelewag_carcass,alexsbutchery:skreecher_carcass,alexsbutchery:farseer_carcass,alexsbutchery:murmur_carcass,alexsbutchery:mimicube_carcass,alexsbutchery:void_worm_carcass",
+      "text": "Every one of the 82 creatures of Alex's Mobs that can be butchered drops a carcass when killed with a cleaver, like Butchery's own animals. Babies never do. The carcass replaces the meat, hides and parts it yields later; anything else the creature drops, it still drops.",
+      "title": "Wild Game"
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Most carcasses are carried to a $(l:butchery:items/hook)hook$(), hung and bled, then taken apart with the cleaver and the skinning knife. The biggest animals are butchered where they fall, birds are plucked instead of skinned, and creatures without blood are cut up straight away.$(br2)The Butchering tab in JEI and Jade's tooltip show what every step yields and which tool comes next."
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 0
+}

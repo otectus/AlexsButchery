@@ -1,0 +1,32 @@
+{
+  "head": [
+    "head",
+    "backHair",
+    "hair_r1",
+    "beak",
+    "jaw",
+    "jaw_r1"
+  ],
+  "cut_1": [
+    "leftWing",
+    "leftWingFeathers",
+    "rightWing",
+    "rightWingFeathers",
+    "leftLeg",
+    "leftFoot",
+    "rightLeg",
+    "rightFoot"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "leftLeg",
+      "rightLeg"
+    ],
+    "pitch": 0
+  }
+}

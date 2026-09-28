@@ -1,0 +1,22 @@
+{
+  "head": [
+    "leftEar",
+    "rightEar"
+  ],
+  "cut_1": [
+    "leftArm",
+    "rightArm",
+    "legs",
+    "feet"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [],
+  "hanging": {
+    "attachment": [
+      "legs",
+      "body"
+    ]
+  }
+}

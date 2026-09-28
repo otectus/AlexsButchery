@@ -1,0 +1,35 @@
+{
+  "head": [
+    "eye",
+    "head"
+  ],
+  "cut_1": [
+    "leftArm",
+    "leftHand",
+    "leftUpperRFinger",
+    "leftLowerRFinger",
+    "leftLowerLFinger",
+    "leftUpperLFinger",
+    "leftArm2",
+    "leftHand2",
+    "leftUpperRFinger2",
+    "leftLowerRFinger2",
+    "leftLowerLFinger2",
+    "leftUpperLFinger2",
+    "rightArm",
+    "rightHand",
+    "rightUpperRFinger",
+    "rightLowerRFinger2",
+    "rightLowerLFinger",
+    "rightUpperLFinger",
+    "rightArm2",
+    "rightHand2",
+    "rightUpperRFinger2",
+    "rightLowerRFinger3",
+    "rightLowerLFinger2",
+    "rightUpperLFinger2"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head"
+}

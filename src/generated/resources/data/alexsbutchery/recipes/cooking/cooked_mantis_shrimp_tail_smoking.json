@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:smoking",
+  "category": "food",
+  "cookingtime": 100,
+  "experience": 0.35,
+  "ingredient": {
+    "item": "alexsbutchery:raw_mantis_shrimp_tail"
+  },
+  "result": "alexsbutchery:cooked_mantis_shrimp_tail"
+}

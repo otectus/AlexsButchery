@@ -1,0 +1,20 @@
+{
+  "head": [
+    "mouth",
+    "eye_left",
+    "eye_right"
+  ],
+  "cut_1": [],
+  "cut_2": [],
+  "hide": [],
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  }
+}

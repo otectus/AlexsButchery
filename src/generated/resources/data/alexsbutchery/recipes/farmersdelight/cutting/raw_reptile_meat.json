@@ -1,0 +1,23 @@
+{
+  "type": "farmersdelight:cutting",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "farmersdelight"
+    }
+  ],
+  "ingredients": [
+    {
+      "item": "alexsbutchery:raw_reptile_meat"
+    }
+  ],
+  "result": [
+    {
+      "count": 2,
+      "item": "farmersdelight:chicken_cuts"
+    }
+  ],
+  "tool": {
+    "tag": "forge:tools/knives"
+  }
+}

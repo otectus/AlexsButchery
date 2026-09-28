@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "alexsbutchery:block/snow_leopard_rug",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "alexsbutchery:block/snow_leopard_rug"
+    },
+    "facing=south": {
+      "model": "alexsbutchery:block/snow_leopard_rug",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "alexsbutchery:block/snow_leopard_rug",
+      "y": 270
+    }
+  }
+}

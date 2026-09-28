@@ -1,0 +1,39 @@
+{
+  "type": "immersive_tanning:hide_mounting",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "immersive_tanning"
+    }
+  ],
+  "ingredient": [
+    {
+      "item": "alexsbutchery:elephant_hide"
+    },
+    {
+      "item": "alexsbutchery:rhino_hide"
+    },
+    {
+      "item": "alexsbutchery:bison_hide"
+    },
+    {
+      "item": "alexsbutchery:moose_hide"
+    },
+    {
+      "item": "alexsbutchery:cosmaw_hide"
+    },
+    {
+      "item": "alexsbutchery:laviathan_hide"
+    },
+    {
+      "item": "alexsbutchery:orca_hide"
+    },
+    {
+      "item": "alexsbutchery:whale_hide"
+    },
+    {
+      "item": "alexsbutchery:sea_bear_hide"
+    }
+  ],
+  "size": "large"
+}

@@ -1,0 +1,51 @@
+{
+  "head": [
+    "jaw"
+  ],
+  "cut_1": [],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "part",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "segments": {
+    "parts": [
+      {
+        "entity": "alexsmobs:anaconda_part",
+        "data": "{BodyModel:1}",
+        "spacing": 0.85
+      },
+      {
+        "entity": "alexsmobs:anaconda_part",
+        "data": "{BodyModel:2}",
+        "spacing": 0.85,
+        "count": 3
+      },
+      {
+        "entity": "alexsmobs:anaconda_part",
+        "data": "{BodyModel:1}",
+        "spacing": 0.85,
+        "count": 2
+      },
+      {
+        "entity": "alexsmobs:anaconda_part",
+        "data": "{BodyModel:3}",
+        "spacing": 0.8
+      }
+    ],
+    "turn": 26,
+    "turn_step": 5,
+    "head_texture": true,
+    "drop_head_model": true,
+    "truncate_cuts": true,
+    "hanging_spacing": 0.7
+  }
+}

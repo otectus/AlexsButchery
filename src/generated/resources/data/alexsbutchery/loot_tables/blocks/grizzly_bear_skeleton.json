@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "functions": [
+            {
+              "function": "minecraft:copy_nbt",
+              "ops": [
+                {
+                  "op": "replace",
+                  "source": "MobData",
+                  "target": "BlockEntityTag.MobData"
+                }
+              ],
+              "source": "block_entity"
+            }
+          ],
+          "name": "alexsbutchery:grizzly_bear_skeleton"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "alexsbutchery:blocks/grizzly_bear_skeleton"
+}

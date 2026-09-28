@@ -1,0 +1,29 @@
+{
+  "head": [
+    "head",
+    "jaw",
+    "teeth"
+  ],
+  "cut_1": [
+    "top_fin",
+    "arm_left",
+    "arm_right"
+  ],
+  "cut_2": [
+    "tail1",
+    "tail2",
+    "tail3"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  }
+}

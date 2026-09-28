@@ -1,0 +1,63 @@
+{
+  "type": "immersive_tanning:hide_mounting",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "immersive_tanning"
+    }
+  ],
+  "ingredient": [
+    {
+      "item": "alexsbutchery:grizzly_pelt"
+    },
+    {
+      "item": "alexsbutchery:gazelle_hide"
+    },
+    {
+      "item": "alexsbutchery:gorilla_hide"
+    },
+    {
+      "item": "alexsbutchery:tiger_pelt"
+    },
+    {
+      "item": "alexsbutchery:snow_leopard_pelt"
+    },
+    {
+      "item": "alexsbutchery:maned_wolf_pelt"
+    },
+    {
+      "item": "alexsbutchery:anteater_hide"
+    },
+    {
+      "item": "alexsbutchery:gelada_pelt"
+    },
+    {
+      "item": "alexsbutchery:dropbear_pelt"
+    },
+    {
+      "item": "alexsbutchery:froststalker_hide"
+    },
+    {
+      "item": "alexsbutchery:tusklin_hide"
+    },
+    {
+      "item": "alexsbutchery:endergrade_hide"
+    },
+    {
+      "item": "alexsbutchery:anaconda_skin"
+    },
+    {
+      "item": "alexsbutchery:komodo_hide"
+    },
+    {
+      "item": "alexsbutchery:crocodile_hide"
+    },
+    {
+      "item": "alexsbutchery:seal_skin"
+    },
+    {
+      "item": "alexsbutchery:shark_skin"
+    }
+  ],
+  "size": "medium"
+}

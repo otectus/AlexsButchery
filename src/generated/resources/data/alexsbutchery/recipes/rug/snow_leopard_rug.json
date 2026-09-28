@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "alexsbutchery:snow_leopard_pelt"
+    },
+    "b": {
+      "item": "alexsbutchery:snow_leopard_head"
+    }
+  },
+  "pattern": [
+    "aba",
+    " a "
+  ],
+  "result": {
+    "item": "alexsbutchery:snow_leopard_rug"
+  },
+  "show_notification": true
+}

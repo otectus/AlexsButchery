@@ -1,0 +1,38 @@
+{
+  "head": [
+    "tongue",
+    "head",
+    "left_eye",
+    "right_eye"
+  ],
+  "cut_1": [
+    "left_arm",
+    "right_arm",
+    "left_leg",
+    "left_foot_pivot",
+    "left_foot",
+    "right_leg",
+    "right_foot",
+    "right_foot_pivot"
+  ],
+  "cut_2": [],
+  "hide": [
+    "sac"
+  ],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "attachment": [
+      "body"
+    ]
+  }
+}

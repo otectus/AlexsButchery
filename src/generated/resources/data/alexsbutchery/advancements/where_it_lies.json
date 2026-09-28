@@ -1,0 +1,33 @@
+{
+  "parent": "alexsbutchery:wild_game",
+  "criteria": {
+    "where_it_lies": {
+      "conditions": {
+        "action": "bleed",
+        "floor": true
+      },
+      "trigger": "alexsbutchery:butchering"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.where_it_lies.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "alexsbutchery:elephant_carcass"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.where_it_lies.title"
+    }
+  },
+  "requirements": [
+    [
+      "where_it_lies"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

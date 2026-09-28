@@ -1,0 +1,38 @@
+{
+  "head": [
+    "head",
+    "head_inside",
+    "jaw"
+  ],
+  "cut_1": [
+    "arm_left",
+    "arm_right",
+    "leg_left",
+    "leg_right",
+    "spikes_left",
+    "spikes_right",
+    "shell"
+  ],
+  "cut_2": [
+    "spikes_left",
+    "spikes_right"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "attachment": [
+      "shell",
+      "body"
+    ]
+  }
+}

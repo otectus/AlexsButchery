@@ -1,0 +1,25 @@
+{
+  "head": [
+    "head"
+  ],
+  "cut_1": [
+    "wingL",
+    "wingL_r1",
+    "wingR",
+    "wingR_r1",
+    "legL",
+    "legR"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "legs": [
+      "legL",
+      "legR"
+    ],
+    "pitch": 0
+  }
+}

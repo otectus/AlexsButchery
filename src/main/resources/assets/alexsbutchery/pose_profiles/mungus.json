@@ -1,0 +1,32 @@
+{
+  "head": [
+    "hair",
+    "eye",
+    "nose"
+  ],
+  "cut_1": [
+    "leg_left",
+    "leg_right"
+  ],
+  "cut_2": [],
+  "hide": [
+    "sack"
+  ],
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "hanging": {
+    "legs": [
+      "leg_left",
+      "leg_right"
+    ],
+    "pitch": 0
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:campfire_cooking",
+  "category": "food",
+  "cookingtime": 600,
+  "experience": 0.35,
+  "ingredient": {
+    "item": "alexsbutchery:raw_game_bird"
+  },
+  "result": "alexsbutchery:cooked_game_bird"
+}

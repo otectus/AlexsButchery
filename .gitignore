@@ -1,0 +1,16 @@
+.gradle/
+build/
+run/
+run-data/
+run-gametest/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+logs/
+*.log
+__pycache__/
+src/generated/resources/.cache/
+# Butchery's jar is All Rights Reserved and must not be redistributed; see README.
+libs/*.jar

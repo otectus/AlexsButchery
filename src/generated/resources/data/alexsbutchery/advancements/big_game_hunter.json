@@ -1,0 +1,36 @@
+{
+  "parent": "alexsbutchery:wild_game",
+  "criteria": {
+    "big_game_hunter": {
+      "conditions": {
+        "items": [
+          {
+            "tag": "alexsbutchery:head_mounts"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.big_game_hunter.description"
+    },
+    "frame": "goal",
+    "hidden": false,
+    "icon": {
+      "item": "alexsbutchery:rhinoceros_head_mount"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.big_game_hunter.title"
+    }
+  },
+  "requirements": [
+    [
+      "big_game_hunter"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

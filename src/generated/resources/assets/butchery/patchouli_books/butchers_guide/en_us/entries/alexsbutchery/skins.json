@@ -1,0 +1,15 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:grizzly_pelt",
+  "name": "Skins and Pelts",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:grizzly_pelt,alexsbutchery:gazelle_hide,alexsbutchery:gorilla_hide,alexsbutchery:elephant_hide,alexsbutchery:rhino_hide,alexsbutchery:bison_hide,alexsbutchery:moose_hide,alexsbutchery:tiger_pelt,alexsbutchery:snow_leopard_pelt,alexsbutchery:maned_wolf_pelt,alexsbutchery:anteater_hide,alexsbutchery:gelada_pelt,alexsbutchery:dropbear_pelt,alexsbutchery:froststalker_hide,alexsbutchery:tusklin_hide,alexsbutchery:cosmaw_hide,alexsbutchery:endergrade_hide,alexsbutchery:laviathan_hide,alexsbutchery:anaconda_skin,alexsbutchery:rattlesnake_skin,alexsbutchery:komodo_hide,alexsbutchery:crocodile_hide,alexsbutchery:caiman_hide,alexsbutchery:raccoon_pelt,alexsbutchery:skunk_pelt,alexsbutchery:tasmanian_devil_pelt,alexsbutchery:platypus_pelt,alexsbutchery:seal_skin,alexsbutchery:orca_hide,alexsbutchery:whale_hide,alexsbutchery:sea_bear_hide,alexsbutchery:shark_skin",
+      "text": "Skinning gives a pelt, hide or skin of its own. Hang it on Butchery's $(l:butchery:blocks/skin_rack)skin rack$(), salt it, wet it with a sponge and wait a minute and a half for leather. With Immersive Tanning they are raw hides for its rack as well.",
+      "title": "Pelts and Hides"
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 5
+}

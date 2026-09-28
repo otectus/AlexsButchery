@@ -1,0 +1,32 @@
+{
+  "parent": "alexsbutchery:wild_game",
+  "criteria": {
+    "bare_bones": {
+      "conditions": {
+        "action": "acid"
+      },
+      "trigger": "alexsbutchery:butchering"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.bare_bones.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "butchery:bottle_of_sulfuric_acid"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.bare_bones.title"
+    }
+  },
+  "requirements": [
+    [
+      "bare_bones"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

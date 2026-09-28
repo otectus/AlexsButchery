@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_grizzly_pelt": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "alexsbutchery:grizzly_pelt"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "alexsbutchery:rug/grizzly_bear_rug"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_grizzly_pelt",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "alexsbutchery:rug/grizzly_bear_rug"
+    ]
+  },
+  "sends_telemetry_event": false
+}

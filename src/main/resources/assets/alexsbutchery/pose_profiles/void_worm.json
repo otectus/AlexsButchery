@@ -1,0 +1,81 @@
+{
+  "head": [
+    "head",
+    "eye_bottom_r1",
+    "eye_top_r1",
+    "topjaw",
+    "bottomjaw"
+  ],
+  "cut_1": [],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head",
+  "lying": {
+    "roll": 0,
+    "pitch": 0,
+    "yaw": 0,
+    "offset": [
+      0,
+      0,
+      0
+    ]
+  },
+  "segments": {
+    "parts": [
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.000f,TailPart:0b}",
+        "spacing": 2.1
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.050f,TailPart:0b}",
+        "spacing": 1.315
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.100f,TailPart:0b}",
+        "spacing": 1.33
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.150f,TailPart:0b}",
+        "spacing": 1.345
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.200f,TailPart:0b}",
+        "spacing": 1.36
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.250f,TailPart:0b}",
+        "spacing": 1.375
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.300f,TailPart:0b}",
+        "spacing": 1.39
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.147f,TailPart:1b}",
+        "spacing": 1.746
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.190f,TailPart:1b}",
+        "spacing": 1.773
+      },
+      {
+        "entity": "alexsmobs:void_worm_part",
+        "data": "{WormScale:1.232f,TailPart:1b}",
+        "spacing": 1.801
+      }
+    ],
+    "turn": 30,
+    "turn_step": 3,
+    "drop_head_model": true,
+    "truncate_cuts": true
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:roadrunner_carcass",
+  "name": "Birds",
+  "pages": [
+    {
+      "type": "patchouli:spotlight",
+      "item": "alexsbutchery:emu_carcass,alexsbutchery:roadrunner_carcass,alexsbutchery:shoebill_carcass,alexsbutchery:seagull_carcass,alexsbutchery:crow_carcass,alexsbutchery:blue_jay_carcass,alexsbutchery:toucan_carcass,alexsbutchery:potoo_carcass,alexsbutchery:bald_eagle_carcass,alexsbutchery:hummingbird_carcass,alexsbutchery:soul_vulture_carcass",
+      "text": "Birds hang and bleed like any carcass, but the skinning knife plucks them instead of skinning them: feathers, and the emu's and roadrunner's own plumes.",
+      "title": "Plucking"
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 3
+}

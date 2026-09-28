@@ -1,0 +1,32 @@
+{
+  "parent": "butchery:butcher",
+  "criteria": {
+    "wild_game": {
+      "conditions": {
+        "action": "kill"
+      },
+      "trigger": "alexsbutchery:butchering"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancements.alexsbutchery.wild_game.description"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "item": "alexsbutchery:kangaroo_carcass"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.alexsbutchery.wild_game.title"
+    }
+  },
+  "requirements": [
+    [
+      "wild_game"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

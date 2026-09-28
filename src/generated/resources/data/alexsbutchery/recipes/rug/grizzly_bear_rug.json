@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "alexsbutchery:grizzly_pelt"
+    },
+    "b": {
+      "item": "alexsbutchery:grizzly_bear_head"
+    }
+  },
+  "pattern": [
+    "aba",
+    " a "
+  ],
+  "result": {
+    "item": "alexsbutchery:grizzly_bear_rug"
+  },
+  "show_notification": true
+}

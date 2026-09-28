@@ -1,0 +1,73 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:alternatives",
+          "children": [
+            {
+              "type": "minecraft:item",
+              "conditions": [
+                {
+                  "block": "alexsbutchery:alligator_snapping_turtle_carcass",
+                  "condition": "minecraft:block_state_property",
+                  "properties": {
+                    "blockstate": "0"
+                  }
+                }
+              ],
+              "functions": [
+                {
+                  "function": "minecraft:copy_nbt",
+                  "ops": [
+                    {
+                      "op": "replace",
+                      "source": "MobData",
+                      "target": "BlockEntityTag.MobData"
+                    }
+                  ],
+                  "source": "block_entity"
+                }
+              ],
+              "name": "alexsbutchery:alligator_snapping_turtle_carcass"
+            },
+            {
+              "type": "minecraft:item",
+              "conditions": [
+                {
+                  "block": "alexsbutchery:alligator_snapping_turtle_carcass",
+                  "condition": "minecraft:block_state_property",
+                  "properties": {
+                    "blockstate": "1"
+                  }
+                }
+              ],
+              "functions": [
+                {
+                  "function": "minecraft:copy_nbt",
+                  "ops": [
+                    {
+                      "op": "replace",
+                      "source": "MobData",
+                      "target": "BlockEntityTag.MobData"
+                    }
+                  ],
+                  "source": "block_entity"
+                }
+              ],
+              "name": "alexsbutchery:alligator_snapping_turtle_carcass"
+            },
+            {
+              "type": "minecraft:item",
+              "name": "butchery:meat_scraps"
+            }
+          ]
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "alexsbutchery:blocks/alligator_snapping_turtle_carcass"
+}

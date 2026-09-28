@@ -1,0 +1,37 @@
+{
+  "head": [
+    "head",
+    "antenna_left",
+    "antenna_right"
+  ],
+  "cut_1": [
+    "legfront_left",
+    "kneefront_left",
+    "legfront_right",
+    "kneefront_right",
+    "legback_left",
+    "kneeback_left",
+    "legback_right",
+    "kneeback_right",
+    "wingtop_left",
+    "wingtop_right",
+    "wingbottom_left",
+    "wingbottom_left_r1",
+    "wingbottom_right",
+    "wingbottom_right_r1",
+    "shoulderspikes_left",
+    "arm_left",
+    "hand_left",
+    "shoulderspikes_right",
+    "arm_right",
+    "hand_right"
+  ],
+  "cut_2": [],
+  "hide": [],
+  "head_root": "head",
+  "hanging": {
+    "attachment": [
+      "body"
+    ]
+  }
+}

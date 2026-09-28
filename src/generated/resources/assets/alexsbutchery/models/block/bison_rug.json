@@ -1,0 +1,6 @@
+{
+  "parent": "alexsbutchery:block/rug",
+  "textures": {
+    "pelt": "alexsbutchery:block/rug/bison_hide"
+  }
+}

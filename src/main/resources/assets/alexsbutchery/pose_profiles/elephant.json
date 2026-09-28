@@ -1,0 +1,28 @@
+{
+  "head": [
+    "head",
+    "left_tusk",
+    "right_tusk",
+    "left_megatusk",
+    "right_megatusk",
+    "left_ear",
+    "right_ear",
+    "trunk1",
+    "trunk2"
+  ],
+  "cut_1": [
+    "left_arm",
+    "right_arm",
+    "left_leg",
+    "right_leg"
+  ],
+  "cut_2": [
+    "tail"
+  ],
+  "hide": [
+    "cabin",
+    "left_chest",
+    "right_chest"
+  ],
+  "head_root": "head"
+}
