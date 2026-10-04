@@ -50,6 +50,8 @@ public final class PoseProfile {
     /** A pelt rug's head: lift above the floor and downward tilt, on top of {@link #headOffset}. */
     public float rugHeadLift = 0F;
     public float rugHeadPitch = 12F;
+    /** Rug-only sizing, independent of severed heads and wall trophies. */
+    public float rugHeadScale = 1F;
     /** The body segments of a multipart mob, or null. */
     @org.jetbrains.annotations.Nullable
     public SegmentChain segments;
@@ -126,6 +128,7 @@ public final class PoseProfile {
             JsonObject rug = GsonHelper.getAsJsonObject(json, "rug");
             p.rugHeadLift = GsonHelper.getAsFloat(rug, "lift", p.rugHeadLift);
             p.rugHeadPitch = GsonHelper.getAsFloat(rug, "pitch", p.rugHeadPitch);
+            p.rugHeadScale = GsonHelper.getAsFloat(rug, "scale", p.rugHeadScale);
         }
         if (json.has("segments")) p.segments = SegmentChain.fromJson(GsonHelper.getAsJsonObject(json, "segments"));
         p.alwaysHidden = names(json, "hide");

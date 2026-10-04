@@ -1,6 +1,17 @@
+buildscript {
+    repositories { maven { url = 'https://maven.minecraftforge.net/' }; mavenCentral() }
+    dependencies { classpath 'org.spongepowered:mixingradle:0.7.38' }
+}
 plugins {
     id 'eclipse'
     id 'net.minecraftforge.gradle' version '6.0.54'
+}
+apply plugin: 'org.spongepowered.mixin'
+
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+    config "${mod_id}.client.mixins.json"
 }
 
 version = mod_version
@@ -42,6 +53,9 @@ minecraft {
             if (project.hasProperty('smokeTest')) {
                 property 'alexsbutchery.smoketest.output', file('run/smoketest').absolutePath
                 property 'alexsbutchery.smoketest.hangingReview', project.hasProperty('hangingReview').toString()
+                property 'alexsbutchery.smoketest.geometryReview', (project.hasProperty('geometryReview') || project.hasProperty('geometryReload')).toString()
+                property 'alexsbutchery.smoketest.geometryReload', project.hasProperty('geometryReload').toString()
+                property 'alexsbutchery.smoketest.exportBounds', project.hasProperty('exportBounds').toString()
                 mods { alexsbutchery_smoketest { source sourceSets.smokeTest } }
             }
         }
@@ -81,6 +95,7 @@ repositories {
 def butcheryJar = file("libs/${butchery_artifact}-${butchery_jar_version}.jar")
 
 dependencies {
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
     // Hard dependencies. Butchery is declared only when its jar is present so a fresh clone fails with the
@@ -146,6 +161,7 @@ tasks.named('smokeTestJar') { finalizedBy 'reobfSmokeTestJar' }
 tasks.named('jar', Jar).configure {
     manifest.attributes('Specification-Title': mod_id, 'Specification-Vendor': mod_authors,
                         'Specification-Version': '1', 'Implementation-Title': project.name,
-                        'Implementation-Version': mod_version, 'Implementation-Vendor': mod_authors)
+                        'Implementation-Version': mod_version, 'Implementation-Vendor': mod_authors,
+                        'MixinConfigs': "${mod_id}.mixins.json,${mod_id}.client.mixins.json")
     finalizedBy 'reobfJar'
 }

@@ -22,6 +22,8 @@ Version numbers live only in `gradle.properties`; `processResources` expands the
 - `... runClient -PsmokeTest` - the smoke-test agent (`src/smokeTest`) creates a flat world, stages every pilot
   carcass stage, writes `run/screenshots/smoketest_*.png` and `run/smoketest/smoketest-result.json`, then quits
 - Add `-PhangingReview` for attachment checks and the hanging galleries only, including the hook-study room
+- Add `-PgeometryReview` for all rug orientations, rendered selection bounds, Laviathan frame interpolation, and real client targeting/butchery. `-PgeometryReload` reopens that saved gallery and checks persistence.
+- `... runClient -PsmokeTest -PexportBounds` exports posed anatomy to `run/smoketest/carcass_bounds.json`; copy it to `src/generated/resources/data/alexsbutchery/carcass_bounds.json` after renderer/profile/dependency changes, then run the geometry review.
 - `... build smokeTestJar` - mod jar + agent jar; `python3 tools/packtest/ultima_pack_test.py` runs them in a copy of the Ultima instance
 - `python3 tools/generate_textures.py --write|--check|--preview out.png` - item icons and rug pelts from `art/butchery_art.py`; authored food cuts live in `art/food_art.py`
 - `python3 .mcmod-tools/check_mod.py AlexsButchery` - models, lang and version checks (its item notes are false positives from loop registration)
@@ -45,8 +47,8 @@ client/    ClientSetup, pose/ (PoseProfile JSON per mob id, SegmentChain for mul
            renderer's scale hook per snapshot to get its model and size; CarcassScene draws Alex's Mobs' own models for
            blocks and items; HangingPose seats and balances solid anatomy directly on the support with reversible joint poses; StageTextures composites appearance layers and supplies drained/tissue materials; StageGeometry supplies muscle and bone meshes), gui/ (floor carcass hint),
            compat/jei/ (Butchering tab)
-data/      datagen providers; everything in src/generated/resources comes from here, including ModAdvancements and
-           ModGuideBook (Patchouli pages shipped under Butchery's book: assets/butchery/patchouli_books/butchers_guide)
+data/      datagen providers; src/generated/resources comes from here except carcass_bounds.json (the client mesh exporter),
+           including ModAdvancements and ModGuideBook (Patchouli pages under assets/butchery/patchouli_books/butchers_guide)
 item/      MobBlockItem (model-rendered carcass, head and trophy items)
 def/       also ItemDefs: the meats, skins and trophies this mod adds; art/butchery_art.py draws their icons, using art/food_art.py for food
 ```

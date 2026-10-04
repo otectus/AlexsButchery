@@ -34,7 +34,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Shared shape of every carcass block. The integer property is literally named {@code blockstate} with Butchery's
+ * Shared behavior of every carcass block. The integer property is literally named {@code blockstate} with Butchery's
  * numbering so Butchery's tag-driven hints, drips and advancements read our blocks like its own. Rendered by
  * CarcassRenderer with the mob's own Alex's Mobs model; no collision, like Butchery's carcasses.
  */
@@ -44,8 +44,6 @@ public abstract class AbstractCarcassBlock extends Block implements EntityBlock,
     /** Drained carcasses and skinless (no-blood) carcasses: Butchery's 0..9 cut numbering. */
     public static final IntegerProperty BLOCKSTATE_STAGED = IntegerProperty.create("blockstate", 0, 9);
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    private static final VoxelShape GROUND = Block.box(0, 0, 0, 16, 10, 16);
-    private static final VoxelShape HANGING = Block.box(2, -14, 2, 14, 16, 14);
 
     protected final MobDef def;
 
@@ -54,7 +52,7 @@ public abstract class AbstractCarcassBlock extends Block implements EntityBlock,
     }
 
     protected AbstractCarcassBlock(MobDef def, SoundType sound) {
-        super(Properties.of().sound(sound).strength(1.0F, 10.0F).noOcclusion()
+        super(Properties.of().sound(sound).strength(1.0F, 10.0F).noOcclusion().dynamicShape()
                 .isRedstoneConductor((state, level, pos) -> false).isSuffocating((state, level, pos) -> false)
                 .isViewBlocking((state, level, pos) -> false));
         this.def = def;
@@ -124,7 +122,7 @@ public abstract class AbstractCarcassBlock extends Block implements EntityBlock,
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return hanging(state) ? HANGING : GROUND;
+        return CarcassBounds.shape(state, level, pos);
     }
 
     @Override

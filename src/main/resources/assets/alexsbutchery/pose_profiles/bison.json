@@ -18,6 +18,9 @@
   ],
   "hide": [],
   "head_root": "head",
+  "rug": {
+    "scale": 0.7
+  },
   "hanging": {
     "legs": [
       "left_leg",

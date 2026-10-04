@@ -15,6 +15,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Finds the named parts of an entity model so stages can hide them (head removed, limbs cut) or draw one alone (a
@@ -22,6 +24,35 @@ import java.util.Map;
  * descriptive names; vanilla-style models expose {@link ModelPart} fields. Both are wrapped behind one interface.
  */
 public final class ModelParts {
+
+    /** Borrowed living models must be restored even when a render buffer throws halfway through. */
+    public static Runnable savePose(CarcassModels.Shape shape) {
+        List<Runnable> restore = new ArrayList<>();
+        for (Part part : shape.parts().values()) {
+            if (part.raw() instanceof AdvancedModelBox box) {
+                var angles = box.getModelAngleCopy();
+                float x = box.scaleX, y = box.scaleY, z = box.scaleZ;
+                boolean visible = box.showModel, children = box.scaleChildren;
+                restore.add(() -> {
+                    box.copyModelAngles(angles);
+                    box.setScale(x, y, z);
+                    box.showModel = visible;
+                    box.scaleChildren = children;
+                });
+            } else if (part.raw() instanceof ModelPart box) {
+                var pose = box.storePose();
+                boolean visible = box.visible;
+                restore.add(() -> { box.loadPose(pose); box.visible = visible; });
+            }
+        }
+        var model = shape.model();
+        boolean young = model.young, riding = model.riding;
+        float attack = model.attackTime;
+        return () -> {
+            restore.forEach(Runnable::run);
+            model.young = young; model.riding = riding; model.attackTime = attack;
+        };
+    }
 
     /** A model part that can be shown, hidden or drawn on its own. */
     public interface Part {
@@ -173,17 +204,36 @@ public final class ModelParts {
     /**
      * Where a part drawn on its own puts the middle of its geometry, in model pixels, and how big that geometry is:
      * {@code {cx, cy, cz, sizeX, sizeY, sizeZ}}. The part renders from its own pivot with its own rotation, so the
-     * middle is the pivot plus the rotated centre of its box. Falls back to the bare pivot and a 8-pixel cube.
+     * measurement includes pivots, rotations and scales throughout its rendered child hierarchy.
      */
     public static float[] centre(Part part) {
-        float[] pivot = part.pivot();
-        float[] b = part.bounds();
-        if (b == null) return new float[]{pivot[0], pivot[1], pivot[2], 8F, 8F, 8F};
-        float[] r = part.rotation();
-        Vector3f c = new Vector3f((b[0] + b[3]) * 0.5F, (b[1] + b[4]) * 0.5F, (b[2] + b[5]) * 0.5F);
-        // Rendering applies Z, then Y, then X to the pose, so a point is turned by X first.
-        c.rotateX(r[0]).rotateY(r[1]).rotateZ(r[2]);
-        return new float[]{pivot[0] + c.x, pivot[1] + c.y, pivot[2] + c.z, b[3] - b[0], b[4] - b[1], b[5] - b[2]};
+        ModelBounds mesh = new ModelBounds();
+        part.render(new PoseStack(), mesh, 15728880, 0);
+        var b = mesh.bounds();
+        return new float[]{(float) (b.minX + b.maxX) * 8, (float) (b.minY + b.maxY) * 8,
+                (float) (b.minZ + b.maxZ) * 8, (float) b.getXsize() * 16,
+                (float) b.getYsize() * 16, (float) b.getZsize() * 16};
+    }
+
+    /** Solid anatomy for seating a rug head: a beard/whisker plane must not hold the skull in the air. */
+    public static void solidBounds(AdvancedModelBox box, PoseStack pose, ModelBounds mesh) {
+        if (!box.showModel) return;
+        pose.pushPose();
+        try {
+            box.translateAndRotate(pose);
+            for (var cube : box.cubeList) {
+                if (cube.posX1 == cube.posX2 || cube.posY1 == cube.posY2 || cube.posZ1 == cube.posZ2) continue;
+                for (int i = 0; i < 8; i++) {
+                    Vector3f v = pose.last().pose().transformPosition(new Vector3f(
+                            (i % 2 == 0 ? cube.posX1 : cube.posX2) / 16F,
+                            ((i & 2) == 0 ? cube.posY1 : cube.posY2) / 16F,
+                            ((i & 4) == 0 ? cube.posZ1 : cube.posZ2) / 16F));
+                    mesh.vertex(v.x, v.y, v.z);
+                }
+            }
+            if (!box.scaleChildren) pose.scale(1 / box.scaleX, 1 / box.scaleY, 1 / box.scaleZ);
+            for (var child : box.childModels) if (child instanceof AdvancedModelBox advanced) solidBounds(advanced, pose, mesh);
+        } finally { pose.popPose(); }
     }
 
     private ModelParts() {}

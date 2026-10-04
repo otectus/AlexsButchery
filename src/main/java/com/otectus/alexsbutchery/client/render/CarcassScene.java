@@ -70,8 +70,13 @@ public final class CarcassScene {
         PoseProfile p = s.profile();
         float size = p.scale * shape.scale();
         List<SegmentChain.Placement> chain = chain(s, true);
-        HangingPose.Layout attachment = HangingPose.get(s, shape, (legs, target) ->
-                drawHangingBody(s, shape, size, chain, legs, new PoseStack(), target, light));
+        HangingPose.Layout attachment = HangingPose.get(s, shape, (legs, target) -> {
+            // Solve contact in model units: absolute sampling tolerances must not pick a different
+            // attachment/balance when a snapshot changes only the creature's uniform size.
+            PoseStack normalized = new PoseStack();
+            normalized.scale(1 / size, 1 / size, 1 / size);
+            drawHangingBody(s, shape, size, chain, legs, normalized, target, light);
+        });
         Vector3f hook = HangingPose.support(support);
         pose.pushPose();
         try {
@@ -79,7 +84,7 @@ public final class CarcassScene {
             pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
             pose.mulPose(attachment.balance());
             Vector3f anchor = attachment.anchor();
-            pose.translate(-anchor.x, -anchor.y, -anchor.z);
+            pose.translate(-anchor.x * size, -anchor.y * size, -anchor.z * size);
             drawHangingBody(s, shape, size, chain, attachment.joints(), pose, buffers, light);
         } finally { pose.popPose(); }
     }
@@ -191,23 +196,43 @@ public final class CarcassScene {
             pose.translate(0.5 + profile.headOffset[0], size[1] * 0.5 + profile.headOffset[1], 0.5 + profile.headOffset[2]);
         }
         pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
-        drawHead(handle, profile, mobData, StageTextures.Look.FRESH, pose, buffers, light);
+        drawHead(handle, profile, mobData, StageTextures.Look.FRESH, pose, buffers, light, 1F);
         pose.popPose();
     }
 
     /** The head of a pelt rug: at the rug's front edge, facing out, chin toward the floor. */
     public static void renderRugHead(CarcassModels.Handle handle, PoseProfile profile, CompoundTag mobData, Direction facing,
                                      PoseStack pose, MultiBufferSource buffers, int light) {
-        float[] size = headSize(handle, profile, mobData);
-        // The pelt spans a block either side of the centre; the head sits over its neck, just inside the front edge.
-        double out = 0.45 + size[2] * 0.5;
-        pose.pushPose();
-        pose.translate(0.5 + facing.getStepX() * out + profile.headOffset[0], size[1] * 0.45 + profile.rugHeadLift + profile.headOffset[1],
-                0.5 + facing.getStepZ() * out + profile.headOffset[2]);
-        pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
-        pose.mulPose(Axis.XP.rotationDegrees(-profile.rugHeadPitch));
-        drawHead(handle, profile, mobData, StageTextures.Look.FRESH, pose, buffers, light);
-        pose.popPose();
+        CarcassModels.Shape shape = handle.shape(mobData);
+        ModelParts.Part head = headPart(shape, profile);
+        if (head == null) return;
+        Runnable restore = ModelParts.savePose(shape);
+        PoseStack.Pose frame = pose.last();
+        try {
+            handle.pose(shape);
+            float[] centre = ModelParts.centre(head);
+            PoseStack local = new PoseStack();
+            local.mulPose(Axis.XP.rotationDegrees(-profile.rugHeadPitch));
+            float scale = profile.headScale * profile.rugHeadScale * shape.scale();
+            local.scale(-scale, -scale, scale);
+            local.translate(-centre[0] / 16F, -centre[1] / 16F, -centre[2] / 16F);
+            ModelBounds mesh = new ModelBounds();
+            if (head.raw() instanceof AdvancedModelBox box) ModelParts.solidBounds(box, local, mesh);
+            else head.render(local, mesh, light, OverlayTexture.NO_OVERLAY);
+            var bounds = mesh.bounds();
+            pose.pushPose();
+            pose.translate(.5, .3 / 16, .5);
+            pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
+            // Seat the pitched solid chin on the carpet and overlap its rear with the authored neck.
+            // Offsets are local to the rug, so all four placements connect identically.
+            pose.translate(profile.headOffset[0], -bounds.minY + profile.rugHeadLift + profile.headOffset[1],
+                    -.30 - bounds.maxZ + profile.headOffset[2]);
+            pose.mulPose(Axis.XP.rotationDegrees(-profile.rugHeadPitch));
+            drawHead(handle, profile, mobData, StageTextures.Look.FRESH, pose, buffers, light, profile.rugHeadScale);
+        } finally {
+            while (pose.last() != frame) pose.popPose();
+            restore.run();
+        }
     }
 
     /** The head's size in blocks, as drawn: {@code {width, height, depth}}. */
@@ -215,27 +240,36 @@ public final class CarcassScene {
         CarcassModels.Shape shape = handle.shape(mobData);
         ModelParts.Part head = headPart(shape, profile);
         if (head == null) return new float[]{0.5F, 0.5F, 0.5F};
-        handle.pose(shape);
-        float[] centre = ModelParts.centre(head);
-        float scale = profile.headScale * shape.scale() / 16F;
-        return new float[]{centre[3] * scale, centre[4] * scale, centre[5] * scale};
+        Runnable restore = ModelParts.savePose(shape);
+        try {
+            handle.pose(shape);
+            float[] centre = ModelParts.centre(head);
+            float scale = profile.headScale * shape.scale() / 16F;
+            return new float[]{centre[3] * scale, centre[4] * scale, centre[5] * scale};
+        } finally { restore.run(); }
     }
 
     /** The head part alone, the middle of its geometry at the current origin. */
     private static void drawHead(CarcassModels.Handle handle, PoseProfile profile, CompoundTag mobData, StageTextures.Look look,
-                                 PoseStack pose, MultiBufferSource buffers, int light) {
+                                 PoseStack pose, MultiBufferSource buffers, int light, float multiplier) {
         CarcassModels.Shape shape = handle.shape(mobData);
         ModelParts.Part head = headPart(shape, profile);
         if (head == null) return;
-        handle.pose(shape);
-        float[] centre = ModelParts.centre(head);
-        float scale = profile.headScale * shape.scale();
-        pose.pushPose();
-        pose.scale(-scale, -scale, scale);
-        pose.translate(-centre[0] / 16F, -centre[1] / 16F, -centre[2] / 16F);
-        VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(StageTextures.get(shape.texture(), look)));
-        head.render(pose, consumer, light, OverlayTexture.NO_OVERLAY);
-        pose.popPose();
+        Runnable restore = ModelParts.savePose(shape);
+        PoseStack.Pose frame = pose.last();
+        try {
+            handle.pose(shape);
+            float[] centre = ModelParts.centre(head);
+            float scale = profile.headScale * shape.scale() * multiplier;
+            pose.pushPose();
+            pose.scale(-scale, -scale, scale);
+            pose.translate(-centre[0] / 16F, -centre[1] / 16F, -centre[2] / 16F);
+            VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(StageTextures.get(shape.texture(), look)));
+            head.render(pose, consumer, light, OverlayTexture.NO_OVERLAY);
+        } finally {
+            while (pose.last() != frame) pose.popPose();
+            restore.run();
+        }
     }
 
     @Nullable
@@ -251,6 +285,7 @@ public final class CarcassScene {
     private static void drawModel(CarcassModels.Handle handle, CarcassModels.Shape shape, ResourceLocation texture, PoseProfile profile,
                                   Set<Stages.Action> done, boolean headModel, StageTextures.Look look, boolean hasSkeleton, Map<String, HangingPose.Rotation> legs,
                                   PoseStack pose, MultiBufferSource buffers, int light) {
+        Runnable restore = ModelParts.savePose(shape);
         handle.pose(shape);
         Map<AdvancedModelBox, HangingPose.Rotation> savedAngles = new IdentityHashMap<>();
         legs.forEach((name, angle) -> {
@@ -286,6 +321,7 @@ public final class CarcassScene {
             // The model is the live one the mob's own renderer uses; never leave parts hidden or posed for hanging.
             hidden.forEach(part -> part.setVisible(true));
             savedAngles.forEach((box, angle) -> angle.apply(box));
+            restore.run();
         }
     }
 

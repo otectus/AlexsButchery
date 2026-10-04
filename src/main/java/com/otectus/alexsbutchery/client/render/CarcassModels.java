@@ -74,8 +74,7 @@ public final class CarcassModels {
         public Shape shape(@Nullable CompoundTag mobData) {
             CompoundTag data = mobData == null ? NO_DATA : mobData;
             if (shape != null && data.equals(applied)) return shape;
-            read(defaults);
-            if (!data.isEmpty()) read(data);
+            read(defaults.copy().merge(data));
             dummy.refreshDimensions();
             float scale = rendererScale();
             EntityModel<LivingEntity> model = renderer.getModel();
@@ -102,7 +101,7 @@ public final class CarcassModels {
         private float rendererScale() {
             PoseStack scratch = new PoseStack();
             try {
-                SCALE.invoke(renderer, dummy, scratch, 0F);
+                SCALE.invoke(renderer, dummy, scratch, 1F);
             } catch (ReflectiveOperationException | RuntimeException e) {
                 return 1F;
             }
@@ -117,6 +116,22 @@ public final class CarcassModels {
             model.young = false;
             model.riding = false;
             model.attackTime = 0F;
+            if (dummy instanceof com.github.alexthe666.alexsmobs.entity.EntityLaviathan laviathan) {
+                // ModelLaviathan ignores ageInTicks for interpolation and reads Minecraft's frame time.
+                // An unticked LivingEntity starts with a random body yaw and previous yaw of zero.
+                // Neutralise both endpoints on our private dummy, never on the living entity/model class.
+                laviathan.yBodyRot = laviathan.yBodyRotO = laviathan.yHeadRot = laviathan.yHeadRotO = 0F;
+                laviathan.setHeadHeight(0F);
+                laviathan.prevHeadHeight = 0F;
+                laviathan.swimProgress = laviathan.prevSwimProgress = 0F;
+                laviathan.biteProgress = laviathan.prevBiteProgress = 0F;
+            }
+            if (dummy instanceof com.github.alexthe666.alexsmobs.entity.EntityTriops triops) {
+                // Its constructor seeds both tail yaws from a random spawn yaw. Geometry exported on
+                // another client must describe the same resting pose, independent of that random seed.
+                triops.yBodyRot = triops.yBodyRotO = 0F;
+                triops.tail1Yaw = triops.prevTail1Yaw = triops.tail2Yaw = triops.prevTail2Yaw = 0F;
+            }
             model.prepareMobModel(dummy, 0F, 0F, 0F);
             model.setupAnim(dummy, 0F, 0F, 0F, 0F, 0F);
         }

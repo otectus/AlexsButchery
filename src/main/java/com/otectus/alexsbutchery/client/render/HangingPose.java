@@ -47,13 +47,16 @@ final class HangingPose {
         Key key = new Key(shape.model(), s.profile(), shape.texture(), shape.scale(), s.mobData().copy(), s.look(), Set.copyOf(s.done()));
         Layout cached = CACHE.get(key);
         if (cached != null) return cached;
-        s.handle().pose(shape);
-        Map<String, Rotation> legs = joints(shape, s.profile());
-        Mesh mesh = new Mesh();
-        draw.accept(legs, new Capture(mesh));
-        Layout result = mesh.seat(legs);
-        CACHE.put(key, result);
-        return result;
+        Runnable restore = ModelParts.savePose(shape);
+        try {
+            s.handle().pose(shape);
+            Map<String, Rotation> legs = joints(shape, s.profile());
+            Mesh mesh = new Mesh();
+            draw.accept(legs, new Capture(mesh));
+            Layout result = mesh.seat(legs);
+            CACHE.put(key, result);
+            return result;
+        } finally { restore.run(); }
     }
 
     private static Map<String, Rotation> joints(CarcassModels.Shape shape, PoseProfile profile) {
@@ -238,16 +241,8 @@ final class HangingPose {
 
     /** Butchery 5.2's hook bowl, after its -22.5-degree model rotation, or the occupied rope's bottom knot. */
     static Vector3f support(BlockState state) {
-        int variant = 0;
-        for (var property : state.getProperties()) if (property.getName().equals("blockstate"))
-            variant = ((Number) state.getValue(property)).intValue();
-        boolean rope = state.is(ButcheryHooks.rope());
-        float y = rope ? (variant == 0 ? .21875F : 0F) : variant == 0 ? .06224F : .08724F;
-        float z = rope ? 0 : variant == 0 ? .03079F : .04329F;
-        Direction facing = state.hasProperty(HorizontalDirectionalBlock.FACING)
-                ? state.getValue(HorizontalDirectionalBlock.FACING) : Direction.NORTH;
-        Vector3f point = new Vector3f(0, y, z).rotateY((float) Math.toRadians(180 - facing.toYRot()));
-        return point.add(.5F, 1, .5F);
+        var point = com.otectus.alexsbutchery.block.CarcassBounds.support(state);
+        return new Vector3f((float) point.x, (float) point.y, (float) point.z);
     }
 
     /** Use points on emitted surfaces, never the empty centre between two legs or inside a rib cage. */
@@ -310,7 +305,13 @@ final class HangingPose {
             }
             return new Layout(Map.copyOf(joints), anchor, balance);
         }
-        public VertexConsumer vertex(double x, double y, double z) { vertices.add(new Vector3f((float) x, (float) y, (float) z)); return this; }
+        public VertexConsumer vertex(double x, double y, double z) {
+            // Equivalent scaled matrices differ by a few float ulps. Quantise well below a visible
+            // pixel so symmetric left/right attachment candidates keep the same deterministic tie.
+            vertices.add(new Vector3f(Math.round(x * 100000) / 100000F,
+                    Math.round(y * 100000) / 100000F, Math.round(z * 100000) / 100000F));
+            return this;
+        }
         public VertexConsumer color(int r, int g, int b, int a) { return this; }
         public VertexConsumer uv(float u, float v) { return this; }
         public VertexConsumer overlayCoords(int u, int v) { return this; }

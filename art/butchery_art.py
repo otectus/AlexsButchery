@@ -271,67 +271,117 @@ def horn(ramp, salt):
 # ------------------------------------------------------------------------------------------ rugs
 # A rug is the pelt laid flat and seen from above, 32x32, head end at the top edge (the block model's north edge,
 # where the renderer draws the mob's own head). Per-skin shape tweaks on top of the skin's ItemDefs palette.
-RUG_STYLE = PELT_STYLE
-
-
-def _bezier(p0, p1, p2, steps=16):
-    pts = []
-    for i in range(steps + 1):
-        t = i / steps
-        pts.append(((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
-                    (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1]))
-    return [(a[0], a[1], b[0], b[1]) for a, b in zip(pts, pts[1:])]
-
-
-# A big cat's tail: down from the rump, curling out to the side along the bottom edge.
-_LONG_TAIL = _bezier((16, 24), (16.5, 31), (26.5, 29))
-
-
-def _rug_mask(tail):
-    def f(x, y):
-        body = _inside_ellipse(x, y, 16, 15.5, 7.2, 9.5)
-        neck = _inside_ellipse(x, y, 16, 5.5, 4.2, 3.6)
-        legs = any(_capsule(x, y, sx, sy, ex, ey, 2.3) or _inside_ellipse(x, y, ex, ey, 2.6, 2.4)
-                   for sx, sy, ex, ey in ((11, 10, 4.5, 5), (21, 10, 27.5, 5), (11, 21, 4.5, 27), (21, 21, 27.5, 27)))
-        if tail == 'long':
-            t = any(_capsule(x, y, ax, ay, bx, by, 1.6) for ax, ay, bx, by in _LONG_TAIL)
-        elif tail == 'short':
-            t = _capsule(x, y, 16, 24, 16, 28, 1.4)
-        else:
-            t = _inside_ellipse(x, y, 16, 25, 1.8, 1.6)
-        return body or neck or legs or t
-    return mask_from(f, 32)
+# Authored at the final 32px resolution. The neck reaches the head's seated rear edge;
+# short stepped contours and coherent fur clusters replace the old ellipse/capsule silhouette.
+def _rug_mask(skin_id):
+    mask = Image.new('1', (32, 32))
+    d = ImageDraw.Draw(mask)
+    bison = skin_id == 'bison_hide'
+    bear = skin_id == 'grizzly_pelt'
+    if bison:
+        body = [(12, 2), (19, 2), (21, 5), (24, 9), (23, 16), (21, 21),
+                (20, 25), (11, 25), (10, 21), (8, 16), (7, 9), (10, 5)]
+    elif bear:
+        body = [(12, 2), (19, 2), (20, 5), (23, 8), (24, 13), (23, 20),
+                (21, 24), (19, 26), (12, 26), (10, 24), (8, 20), (7, 13), (8, 8), (11, 5)]
+    else:
+        body = [(12, 2), (19, 2), (20, 6), (22, 9), (22, 14), (21, 18),
+                (22, 22), (20, 25), (11, 25), (9, 22), (10, 18), (9, 14), (9, 9), (11, 6)]
+    d.polygon(body, fill=1)
+    # Splayed limbs with distinct elbows/hocks and a flat, readable paw/hoof end.
+    fore = [(10, 8), (7, 7), (4, 4), (2, 4), (1, 5), (1, 7), (4, 10), (8, 13), (11, 12)]
+    hind = [(11, 20), (8, 22), (5, 25), (2, 26), (2, 29), (5, 29), (9, 26), (13, 24)]
+    if bison:
+        fore = [(9, 7), (7, 6), (4, 3), (2, 3), (1, 5), (4, 9), (8, 13), (11, 11)]
+        hind = [(12, 20), (8, 22), (5, 26), (3, 27), (4, 29), (7, 28), (10, 25), (14, 24)]
+    for limb in (fore, hind):
+        d.polygon(limb, fill=1)
+        d.polygon([(31 - x, y) for x, y in limb], fill=1)
+    if bear:
+        d.rectangle((14, 25, 17, 27), fill=1)
+    elif bison:
+        d.line([(15, 24), (16, 27), (18, 29), (21, 29)], fill=1, width=2)
+        d.rectangle((20, 28, 22, 30), fill=1)
+    else:
+        # Long separated tail; the gap beside the right hind paw keeps it legible.
+        d.line([(15, 24), (15, 27), (17, 30), (23, 30), (26, 28)], fill=1, width=3)
+    return [[bool(mask.getpixel((x, y))) for x in range(32)] for y in range(32)]
 
 
 def rug(icon, palette, salt, skin_id):
-    """The flat pelt of a rug from a skin item's icon template (pattern) and palette."""
-    style = RUG_STYLE.get(skin_id, {})
-    ramp = SKIN[style.get('palette', palette)]
-    im, _ = canvas(32)
-    mask = _rug_mask(style.get('tail', 'short'))
-    shade_fill(im, mask, ramp[:4], salt, light=(-0.35, -0.5), grain=0.12)
+    """Four species-specific pelts, with binary transparency and no resampling or noise."""
+    mask = _rug_mask(skin_id)
+    im, d = canvas(32)
     px = im.load()
+    bison = skin_id == 'bison_hide'
+    bear = skin_id == 'grizzly_pelt'
+    tiger = skin_id == 'tiger_pelt'
+    leopard = skin_id == 'snow_leopard_pelt'
+    ramps = {
+        'bison_hide': ['#201a17', '#302620', '#45352a', '#594333', '#6c503b'],
+        'grizzly_pelt': ['#30231b', '#493226', '#604330', '#76533b', '#896346'],
+        'tiger_pelt': ['#623a20', '#a75b22', '#c77a2b', '#de953e', '#e8ac55'],
+        'snow_leopard_pelt': ['#64635c', '#929087', '#b8b5aa', '#d0ccc0', '#e0dbce'],
+    }
+    ramp = [hexrgb(c) for c in ramps[skin_id]]
     edge = [[mask[y][x] and any(not (0 <= x + dx < 32 and 0 <= y + dy < 32 and mask[y + dy][x + dx])
-                                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))) for x in range(32)] for y in range(32)]
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))) for x in range(32)] for y in range(32)]
     for y in range(32):
         for x in range(32):
-            if not mask[y][x] or edge[y][x]:
+            if not mask[y][x]:
                 continue
-            if icon == 'pelt_striped' and y in (8, 13, 18, 23) and 10 <= x <= 22 and abs(x - 16) >= 2:
-                px[x, y] = hexrgb(ramp[4])
-            elif icon == 'pelt_spotted':
-                # rosettes: rings on a coarse grid, offset every other row
-                cx = (x + (4 if (y // 7) % 2 else 0)) % 7
-                cy = y % 7
-                d = (cx - 3) ** 2 + (cy - 3) ** 2
-                if 3 <= d <= 5:
-                    px[x, y] = hexrgb(ramp[4])
-            elif style.get('mane') and y < 14 and (x + y) % 3 != 0:
-                px[x, y] = hexrgb(ramp[0])
-    # the spine: a slightly darker line down the middle, where the pelt was opened
-    for y in range(8, 24):
-        if mask[y][16] and not edge[y][16] and y % 3 != 0:
-            px[16, y] = hexrgb(ramp[1])
+            # Broad shoulder highlight, softer flank shadows, grouped downward fur strokes.
+            shade = 3 if 10 <= x <= 19 and y < 18 else 2
+            if x > 21 or y > 25: shade -= 1
+            if (x + y // 3) % 7 == 0 and y % 4 in (1, 2): shade = min(4, shade + 1)
+            if edge[y][x]: shade = 1 if x < 16 and y < 24 else 0
+            if bison and y < 13:
+                shade = max(0, shade - 2 + (1 if y > 8 and (x + y) % 4 < 2 else 0))
+            px[x, y] = ramp[shade]
+
+    marks = Image.new('RGBA', (32, 32))
+    m = ImageDraw.Draw(marks)
+    if tiger:
+        dark = '#30251c'
+        # Tapered, offset flank stripes: broad at the edge, narrow toward the spine.
+        for y, tip in ((7, 14), (12, 15), (17, 14), (22, 15)):
+            m.polygon([(8, y), (11, y), (tip, y + 2), (11, y + 2), (8, y + 1)], fill=dark)
+        for y, tip in ((9, 18), (14, 17), (19, 18), (23, 18)):
+            m.polygon([(23, y), (20, y), (tip, y + 1), (20, y + 2), (23, y + 2)], fill=dark)
+        for pts in ([(3, 6), (6, 8)], [(7, 9), (8, 11)], [(27, 6), (25, 9)],
+                    [(23, 10), (24, 12)], [(6, 25), (8, 27)], [(24, 24), (26, 26)],
+                    [(15, 27), (17, 27)], [(19, 29), (19, 31)], [(24, 28), (26, 30)]):
+            m.line(pts, fill=dark, width=1)
+        m.line([(14, 3), (13, 5)], fill=dark)
+        m.line([(18, 3), (19, 5)], fill=dark)
+    elif leopard:
+        # Broken small rosettes with warm centres, irregularly spaced instead of a tiled square grid.
+        for x, y in ((12, 7), (18, 9), (10, 13), (16, 14), (21, 17), (12, 19), (17, 22)):
+            m.point([(x, y - 1), (x - 1, y), (x + 1, y), (x + 1, y + 1), (x, y + 2)], fill='#514e47')
+            m.point((x, y), fill='#a29b8e')
+        for x, y in ((4, 6), (7, 9), (26, 6), (24, 10), (6, 27), (9, 24), (25, 26), (21, 23),
+                     (14, 4), (18, 5), (15, 10), (18, 18), (15, 26)):
+            m.line([(x, y), (x + 1, y)], fill='#514e47')
+        for x in (17, 21, 25): m.line([(x, 28), (x, 31)], fill='#514e47')
+    elif bison:
+        # Heavy dark shoulder cape breaks into coarse locks over the shorter, warmer rump.
+        for x, y in ((9, 10), (12, 11), (15, 10), (18, 12), (21, 10)):
+            m.line([(x, y), (x, y + 3)], fill='#302620')
+        for x, y in ((12, 16), (17, 18), (14, 22), (20, 15)):
+            m.line([(x, y), (x, y + 1)], fill='#76563d')
+        for x in (2, 28): m.rectangle((x, 4, x + 1, 5), fill='#24201d')
+        m.rectangle((20, 29, 22, 30), fill='#302620')
+    elif bear:
+        # A subtle shoulder saddle and paired fur locks, without a conspicuous artificial spine seam.
+        for x, y in ((11, 8), (15, 6), (18, 9), (12, 14), (16, 16), (19, 20), (12, 23)):
+            m.line([(x, y), (x, y + 2)], fill='#896346')
+            m.point((x + 1, y + 2), fill='#76533b')
+        for x, y in ((3, 6), (27, 6), (4, 28), (26, 28)):
+            m.line([(x, y), (x + 1, y)], fill='#30231b')
+    for y in range(32):
+        for x in range(32):
+            color = marks.getpixel((x, y))
+            if mask[y][x] and color[3] and not edge[y][x]: px[x, y] = color
     return im
 
 

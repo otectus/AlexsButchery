@@ -64,6 +64,7 @@ public final class ClientSmokeTest {
     private static int worldTicks = -1;
     private static boolean worldRequested;
     private static boolean finished;
+    private static String geometryWorld;
     private static BlockPos base;
     private static int settledAt = -1;
     private static int quietTicks;
@@ -144,6 +145,37 @@ public final class ClientSmokeTest {
     }
 
     private static void step(Minecraft mc, int t) {
+        if (Boolean.getBoolean("alexsbutchery.smoketest.exportBounds")) {
+            if (t == 60) {
+                try { BoundsExport.write(Path.of(OUTPUT, "carcass_bounds.json"), checks); }
+                catch (IOException e) { throw new IllegalStateException(e); }
+                finish(mc, true, "bounds exported");
+            }
+            return;
+        }
+        if (Boolean.getBoolean("alexsbutchery.smoketest.geometryReview")) {
+            if (t == 60) stageGeometryReview(mc);
+            if (t == 95) GeometryChecks.run(checks);
+            if (t >= 100) {
+                mc.options.hideGui = true;
+                int index = (t - 100) / SHOT_TICKS, phase = (t - 100) % SHOT_TICKS;
+                if (index < SHOTS.size()) {
+                    Shot shot = SHOTS.get(index);
+                    if (phase == 0) camera(mc, shot.dx(), shot.dz(), shot.yaw(), shot.pitch(), shot.dy());
+                    if (phase == SHOT_TICKS - 4) shot(mc, shot.name());
+                } else {
+                    int playTick = t - 100 - SHOTS.size() * SHOT_TICKS;
+                    if (Boolean.getBoolean("alexsbutchery.smoketest.geometryReload")) {
+                        if (phase == 10) finish(mc, allPassed(), "geometry save/reload complete");
+                    } else {
+                        mc.options.hideGui = false;
+                        if (playTick % 40 == 9) shot(mc, "smoketest_target_laviathan_" + playTick / 40);
+                        if (GeometryPlayChecks.tick(mc, playTick, base, checks)) finish(mc, allPassed(), "geometry review and gameplay complete");
+                    }
+                }
+            }
+            return;
+        }
         if (HANGING_REVIEW) {
             if (t == 60) stageWorld(mc);
             if (t == 95) HangingChecks.run(checks);
@@ -201,11 +233,81 @@ public final class ClientSmokeTest {
     }
 
     private static void createWorld(Minecraft mc) {
+        if (Boolean.getBoolean("alexsbutchery.smoketest.geometryReload")) {
+            try {
+                var saved = com.google.gson.JsonParser.parseString(Files.readString(Path.of(OUTPUT, "geometry-save.json"))).getAsJsonObject();
+                geometryWorld = saved.get("world").getAsString();
+                base = new BlockPos(saved.get("x").getAsInt(), saved.get("y").getAsInt(), saved.get("z").getAsInt());
+                mc.createWorldOpenFlows().loadLevel(mc.screen, geometryWorld);
+                return;
+            } catch (IOException e) { throw new IllegalStateException(e); }
+        }
         String name = "SmokeTest" + System.currentTimeMillis();
+        geometryWorld = name;
         LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.PEACEFUL, true, new GameRules(),
                 WorldDataConfiguration.DEFAULT);
         mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(20260924L, false, false),
                 access -> access.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions());
+    }
+
+    private static void stageGeometryReview(Minecraft mc) {
+        var server = mc.getSingleplayerServer();
+        server.execute(() -> {
+            ServerLevel level = server.overworld();
+            if (Boolean.getBoolean("alexsbutchery.smoketest.geometryReload")) {
+                boolean rugs = true;
+                int row = 0;
+                for (var def : MobDefs.all()) if (def.hasRug()) {
+                    int col = 0;
+                    for (Direction facing : Direction.Plane.HORIZONTAL) {
+                        var state = level.getBlockState(base.offset(col++ * 5, 0, row * 6));
+                        rugs &= state.is(ModBlocks.of(def).rug().get()) && state.getValue(AbstractCarcassBlock.FACING) == facing;
+                    }
+                    row++;
+                }
+                checks.put("reload_rugs_all_species_and_facings", rugs);
+                var be = level.getBlockEntity(base.offset(5, 0, 6));
+                checks.put("reload_rug_snapshot", be instanceof CarcassBlockEntity carcass && carcass.mobData().getBoolean("ReviewMarker"));
+                var cut = level.getBlockState(base.offset(78, 0, 10));
+                checks.put("reload_laviathan_cut_stage", cut.is(ModBlocks.of(MobDefs.byId("laviathan")).drained().get())
+                        && cut.getValue(AbstractCarcassBlock.BLOCKSTATE_STAGED) == 9);
+                SHOTS.add(new Shot("smoketest_reload_bison", 5, 10, 180F, 23F, 1.7));
+                SHOTS.add(new Shot("smoketest_reload_laviathan_cut", 95, 8, 90F, 9F, 3.0));
+                return;
+            }
+            base = server.getPlayerList().getPlayers().get(0).blockPosition();
+            level.setDayTime(6000);
+            level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, server);
+            level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false, server);
+            for (int x = -6; x < 105; x++) for (int z = -12; z < 40; z++)
+                level.setBlockAndUpdate(base.offset(x, -1, z), Blocks.SPRUCE_PLANKS.defaultBlockState());
+            int row = 0;
+            for (var def : MobDefs.all()) if (def.hasRug()) {
+                int col = 0;
+                for (Direction facing : Direction.Plane.HORIZONTAL) {
+                    int x = col++ * 5, z = row * 6;
+                    level.setBlockAndUpdate(base.offset(x, 0, z), ModBlocks.of(def).rug().get().defaultBlockState().setValue(AbstractCarcassBlock.FACING, facing));
+                    SHOTS.add(new Shot("smoketest_rug_" + def.id() + "_" + facing.getName(), x, z + 4.0, 180F, 23F, 1.7));
+                }
+                row++;
+            }
+            var def = MobDefs.byId("laviathan");
+            for (int stage = 0; stage < 6; stage++) {
+                BlockState state = stage == 0 ? ModBlocks.of(def).carcass().get().defaultBlockState()
+                        : stage == 5 ? ModBlocks.of(def).skeleton().get().defaultBlockState()
+                        : ModBlocks.of(def).drained().get().defaultBlockState().setValue(AbstractCarcassBlock.BLOCKSTATE_STAGED, new int[]{0, 0, 7, 8, 9}[stage]);
+                int x = 30 + stage * 12;
+                level.setBlockAndUpdate(base.offset(x, 0, 10), state);
+                SHOTS.add(new Shot("smoketest_laviathan_stage_" + stage, x + 17, 8, 90F, 9F, 3.0));
+            }
+            var marker = new CompoundTag(); marker.putBoolean("ReviewMarker", true);
+            ((CarcassBlockEntity) level.getBlockEntity(base.offset(5, 0, 6))).setMobData(marker);
+            try {
+                Files.createDirectories(Path.of(OUTPUT));
+                Files.writeString(Path.of(OUTPUT, "geometry-save.json"), new GsonBuilder().create().toJson(Map.of(
+                        "world", geometryWorld, "x", base.getX(), "y", base.getY(), "z", base.getZ())));
+            } catch (IOException e) { checks.put("save_metadata_written", false); }
+        });
     }
 
     private static void stageWorld(Minecraft mc) {
@@ -593,6 +695,7 @@ public final class ClientSmokeTest {
         checks.put("mount_block_entity", mc.level.getBlockEntity(base.offset(-3, 0, 1)) instanceof CarcassBlockEntity);
         runFeatureChecks(mc);
         AssetChecks.run(checks);
+        GeometryChecks.run(checks);
     }
 
     private static void camera(Minecraft mc, double dx, double dz, float yaw, float pitch) {
