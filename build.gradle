@@ -44,6 +44,8 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.console.level', 'info'
             property 'forge.enabledGameTestNamespaces', mod_id
+            // GameTests fail when this disagrees with the loaded mods, so the knife tests cannot silently skip.
+            property 'alexsbutchery.gametest.farmersDelight', project.hasProperty('withFarmersDelight').toString()
             // Dependency mixins (Citadel, Alex's Mobs) ship SRG-named refmaps; remap them to the dev names.
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
@@ -56,10 +58,26 @@ minecraft {
                 property 'alexsbutchery.smoketest.geometryReview', (project.hasProperty('geometryReview') || project.hasProperty('geometryReload')).toString()
                 property 'alexsbutchery.smoketest.geometryReload', project.hasProperty('geometryReload').toString()
                 property 'alexsbutchery.smoketest.exportBounds', project.hasProperty('exportBounds').toString()
+                // -PperfBench[=label]: frame-time and targeting benchmark, run/smoketest/perf-<label>.json (PerfBench).
+                property 'alexsbutchery.smoketest.perfBench', project.hasProperty('perfBench').toString()
+                property 'alexsbutchery.smoketest.perfLabel', project.findProperty('perfBench') ?: 'run'
+                // -PsaveCompat=create (with an older build) / verify: old-save fixture, run/smoketest/save-compat*.json.
+                property 'alexsbutchery.smoketest.saveCompat', project.findProperty('saveCompat') ?: ''
+                // -PgroundReview=<label>: close-up ground-contact gallery, run/screenshots/ground_<label>_*.png.
+                property 'alexsbutchery.smoketest.groundReview', project.findProperty('groundReview') ?: ''
+                // -PremoteServer=host:port: interaction checks against a dedicated server, run/smoketest/remote-result.json.
+                property 'alexsbutchery.smoketest.remoteServer', project.findProperty('remoteServer') ?: ''
+                ['perfSeconds', 'perfWarmup', 'perfSamples'].each { name ->
+                    if (project.hasProperty(name)) property "alexsbutchery.smoketest.${name}", project.property(name)
+                }
                 mods { alexsbutchery_smoketest { source sourceSets.smokeTest } }
             }
         }
-        server { args '--nogui' }
+        // A separate directory, so a dedicated server and a dev client (-PremoteServer) can run side by side.
+        server {
+            workingDirectory project.file('run-server')
+            args '--nogui'
+        }
         gameTestServer {
             workingDirectory project.file('run-gametest')
             mods { alexsbutchery { source sourceSets.gameTest } }
@@ -115,12 +133,17 @@ dependencies {
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+
+    // -PwithFarmersDelight: Farmer's Delight in the dev runs, for the knife and cutting-board tests. Data-only in the mod.
+    if (project.hasProperty('withFarmersDelight')) {
+        runtimeOnly fg.deobf("maven.modrinth:farmers-delight:${farmersdelight_version}")
+    }
 }
 
 tasks.named('compileJava').configure {
     doFirst {
         if (!butcheryJar.exists()) {
-            throw new GradleException("Missing ${butcheryJar}: download Butchery 5.2 for Forge 1.20.1 from CurseForge into libs/ (see README.md).")
+            throw new GradleException("Missing ${butcheryJar}: download Butchery (5.2 or later) for Forge 1.20.1 from CurseForge into libs/ (see README.md).")
         }
     }
 }
@@ -138,6 +161,12 @@ tasks.named('processResources', ProcessResources).configure {
 tasks.named('processSmokeTestResources', ProcessResources).configure {
     inputs.properties mod_version: mod_version, mod_license: mod_license
     filesMatching('META-INF/mods.toml') { expand mod_version: mod_version, mod_license: mod_license }
+}
+
+// Every GameTest run starts from a fresh world: saved item entities load after a test structure is cleared, so drops
+// from an earlier run of the same layout would otherwise land in a test's counting area.
+tasks.matching { it.name == 'runGameTestServer' }.configureEach {
+    doFirst { delete file('run-gametest/world') }
 }
 
 tasks.withType(JavaCompile).configureEach {

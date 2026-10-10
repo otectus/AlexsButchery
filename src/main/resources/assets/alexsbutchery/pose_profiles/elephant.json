@@ -24,5 +24,11 @@
     "left_chest",
     "right_chest"
   ],
-  "head_root": "head"
+  "head_root": "head",
+  "lying": {
+    "ignore": [
+      "left_ear",
+      "right_ear"
+    ]
+  }
 }

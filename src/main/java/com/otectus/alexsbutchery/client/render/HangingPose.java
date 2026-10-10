@@ -3,14 +3,11 @@ package com.otectus.alexsbutchery.client.render;
 import com.github.alexthe666.citadel.client.model.AdvancedModelBox;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.otectus.alexsbutchery.butcher.Stages;
 import com.otectus.alexsbutchery.client.pose.PoseProfile;
 import com.otectus.alexsbutchery.compat.ButcheryHooks;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3f;
@@ -29,22 +26,20 @@ import java.util.function.BiConsumer;
 
 /** Seats solid anatomy directly on the support and balances the remaining mesh beneath it. */
 final class HangingPose {
-    private record Key(Object model, Object profile, ResourceLocation texture, float scale, CompoundTag data,
-                       StageTextures.Look look, Set<Stages.Action> done) {}
     record Rotation(float x, float y, float z) {
         static Rotation of(AdvancedModelBox box) { return new Rotation(box.rotateAngleX, box.rotateAngleY, box.rotateAngleZ); }
         void apply(AdvancedModelBox box) { box.rotateAngleX = x; box.rotateAngleY = y; box.rotateAngleZ = z; }
     }
     record Layout(Map<String, Rotation> joints, Vector3f anchor, Quaternionf balance) {}
     // Snapshots may be numerous in a gallery. Bound the cache and clear it on resource/world reload.
-    private static final Map<Key, Layout> CACHE = new LinkedHashMap<>(64, .75F, true) {
-        @Override protected boolean removeEldestEntry(Map.Entry<Key, Layout> e) { return size() > 512; }
+    private static final Map<PoseKey, Layout> CACHE = new LinkedHashMap<>(64, .75F, true) {
+        @Override protected boolean removeEldestEntry(Map.Entry<PoseKey, Layout> e) { return size() > 512; }
     };
     static void clear() { CACHE.clear(); }
 
     static Layout get(CarcassScene.Subject s, CarcassModels.Shape shape,
                       BiConsumer<Map<String, Rotation>, MultiBufferSource> draw) {
-        Key key = new Key(shape.model(), s.profile(), shape.texture(), shape.scale(), s.mobData().copy(), s.look(), Set.copyOf(s.done()));
+        PoseKey key = PoseKey.of(s, shape);
         Layout cached = CACHE.get(key);
         if (cached != null) return cached;
         Runnable restore = ModelParts.savePose(shape);

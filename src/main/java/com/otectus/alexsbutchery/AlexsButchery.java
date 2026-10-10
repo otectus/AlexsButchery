@@ -3,6 +3,7 @@ package com.otectus.alexsbutchery;
 import com.mojang.logging.LogUtils;
 import com.otectus.alexsbutchery.advancement.ButcheringTrigger;
 import com.otectus.alexsbutchery.client.ClientSetup;
+import com.otectus.alexsbutchery.compat.ButcheryHooks;
 import com.otectus.alexsbutchery.config.ClientConfig;
 import com.otectus.alexsbutchery.config.ServerConfig;
 import com.otectus.alexsbutchery.registry.ModBlockEntities;
@@ -43,6 +44,7 @@ public class AlexsButchery {
     private static void commonSetup(FMLCommonSetupEvent event) {
         // The vanilla trigger map is a plain HashMap and setup runs in parallel across mods.
         event.enqueueWork(() -> CriteriaTriggers.register(ButcheringTrigger.INSTANCE));
+        ButcheryHooks.resolveOptionalConfig();
     }
 
     public static ResourceLocation id(String path) {

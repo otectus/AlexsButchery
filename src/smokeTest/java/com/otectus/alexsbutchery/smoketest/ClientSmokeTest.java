@@ -86,7 +86,9 @@ public final class ClientSmokeTest {
 
     @SubscribeEvent
     public static void onTick(TickEvent.ClientTickEvent event) {
-        if (OUTPUT == null || finished || event.phase != TickEvent.Phase.END) return;
+        // The benchmark, old-save and dedicated-server modes drive the client themselves.
+        if (OUTPUT == null || finished || PerfBench.ENABLED || SaveCompatCreate.ENABLED || !GroundReview.LABEL.isEmpty() || !RemoteChecks.SERVER.isEmpty()
+                || event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getInstance();
         try {
             if (mc.player == null || mc.level == null) {
@@ -99,6 +101,8 @@ public final class ClientSmokeTest {
                 return;
             }
             worldTicks++;
+            // Unattended: a window that loses focus must not pause the game under the screenshots.
+            mc.options.pauseOnLostFocus = false;
             if (settledAt < 0 && !settle(mc)) return;
             step(mc, worldTicks - settledAt);
         } catch (Exception e) {
@@ -155,7 +159,10 @@ public final class ClientSmokeTest {
         }
         if (Boolean.getBoolean("alexsbutchery.smoketest.geometryReview")) {
             if (t == 60) stageGeometryReview(mc);
-            if (t == 95) GeometryChecks.run(checks);
+            if (t == 95) {
+                GeometryChecks.run(checks);
+                SelectionChecks.run(checks);
+            }
             if (t >= 100) {
                 mc.options.hideGui = true;
                 int index = (t - 100) / SHOT_TICKS, phase = (t - 100) % SHOT_TICKS;
@@ -169,7 +176,7 @@ public final class ClientSmokeTest {
                         if (phase == 10) finish(mc, allPassed(), "geometry save/reload complete");
                     } else {
                         mc.options.hideGui = false;
-                        if (playTick % 40 == 9) shot(mc, "smoketest_target_laviathan_" + playTick / 40);
+                        if (playTick % 40 == 9) shot(mc, "smoketest_target_carcass_" + playTick / 40);
                         if (GeometryPlayChecks.tick(mc, playTick, base, checks)) finish(mc, allPassed(), "geometry review and gameplay complete");
                     }
                 }
@@ -273,13 +280,14 @@ public final class ClientSmokeTest {
                         && cut.getValue(AbstractCarcassBlock.BLOCKSTATE_STAGED) == 9);
                 SHOTS.add(new Shot("smoketest_reload_bison", 5, 10, 180F, 23F, 1.7));
                 SHOTS.add(new Shot("smoketest_reload_laviathan_cut", 95, 8, 90F, 9F, 3.0));
+                floorGallery(level, true);
                 return;
             }
             base = server.getPlayerList().getPlayers().get(0).blockPosition();
             level.setDayTime(6000);
             level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, server);
             level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING).set(false, server);
-            for (int x = -6; x < 105; x++) for (int z = -12; z < 40; z++)
+            for (int x = -6; x < 105; x++) for (int z = -12; z < 90; z++)
                 level.setBlockAndUpdate(base.offset(x, -1, z), Blocks.SPRUCE_PLANKS.defaultBlockState());
             int row = 0;
             for (var def : MobDefs.all()) if (def.hasRug()) {
@@ -301,6 +309,7 @@ public final class ClientSmokeTest {
                 SHOTS.add(new Shot("smoketest_laviathan_stage_" + stage, x + 17, 8, 90F, 9F, 3.0));
             }
             var marker = new CompoundTag(); marker.putBoolean("ReviewMarker", true);
+            floorGallery(level, false);
             ((CarcassBlockEntity) level.getBlockEntity(base.offset(5, 0, 6))).setMobData(marker);
             try {
                 Files.createDirectories(Path.of(OUTPUT));
@@ -308,6 +317,24 @@ public final class ClientSmokeTest {
                         "world", geometryWorld, "x", base.getX(), "y", base.getY(), "z", base.getZ())));
             } catch (IOException e) { checks.put("save_metadata_written", false); }
         });
+    }
+
+    private static void floorGallery(ServerLevel level, boolean reload) {
+        String[] ids = {"bison", "rhinoceros", "void_worm", "centipede", "farseer", "centipede"};
+        for (int i = 0; i < ids.length; i++) {
+            var block = (AbstractCarcassBlock) ModBlocks.of(MobDefs.byId(ids[i])).carcass().get();
+            Direction facing = i % 2 == 0 ? Direction.NORTH : Direction.EAST;
+            var state = block.defaultBlockState().setValue(AbstractCarcassBlock.FACING, facing);
+            if (i == 5) state = state.setValue(block.stateProperty(), 6);
+            int x = 10 + (i % 3) * 30, z = 48 + (i / 3) * 26;
+            var pos = base.offset(x, 0, z);
+            String label = ids[i] + "_" + block.stage(state) + "_" + facing.getName();
+            if (reload) checks.put("reload_floor_" + label, level.getBlockState(pos).equals(state));
+            else level.setBlockAndUpdate(pos, state);
+            double distance = ids[i].equals("void_worm") ? 17 : ids[i].equals("centipede") ? 10 : 7;
+            SHOTS.add(new Shot("smoketest_" + (reload ? "reload_" : "") + "floor_" + label,
+                    x + distance, z + 2, 90F, 8F, ids[i].equals("void_worm") ? 3.0 : 1.6));
+        }
     }
 
     private static void stageWorld(Minecraft mc) {

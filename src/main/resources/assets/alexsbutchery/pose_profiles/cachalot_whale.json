@@ -24,6 +24,10 @@
       0,
       0,
       0
+    ],
+    "ignore": [
+      "arm_left",
+      "arm_right"
     ]
   }
 }

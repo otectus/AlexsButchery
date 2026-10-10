@@ -23,6 +23,10 @@ public final class PoseProfile {
     public float lyingPitch = 0F;
     public float lyingYaw = 0F;
     public float[] lyingOffset = {0F, 0F, 0F};
+    /** Absolute local joint angles in degrees while lying, to lay limbs down instead of propping the body up on them. */
+    public java.util.Map<String, float[]> lyingRotations = new java.util.LinkedHashMap<>();
+    /** Parts that do not hold the lying body up (an ear, a fin, a flipper): left out of its ground contact, drawn as ever. */
+    public Set<String> lyingIgnore = new LinkedHashSet<>();
     /** Extra rotation when hanging; 180 hangs the mob upside down by its feet. */
     public float hangingFlip = 180F;
     public float hangingPitch = 0F;
@@ -105,6 +109,11 @@ public final class PoseProfile {
             p.lyingPitch = GsonHelper.getAsFloat(lying, "pitch", p.lyingPitch);
             p.lyingYaw = GsonHelper.getAsFloat(lying, "yaw", p.lyingYaw);
             p.lyingOffset = vec(lying, "offset", p.lyingOffset);
+            p.lyingIgnore = names(lying, "ignore");
+            if (lying.has("rotations")) GsonHelper.getAsJsonObject(lying, "rotations").entrySet().forEach(e -> {
+                var v = e.getValue().getAsJsonArray();
+                p.lyingRotations.put(e.getKey(), new float[]{v.get(0).getAsFloat(), v.get(1).getAsFloat(), v.get(2).getAsFloat()});
+            });
         }
         if (json.has("hanging")) {
             JsonObject hanging = GsonHelper.getAsJsonObject(json, "hanging");

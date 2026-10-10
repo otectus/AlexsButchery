@@ -58,7 +58,8 @@ public final class ButcheryGameTests {
         LivingEntity kangaroo = (LivingEntity) h.spawn(alexsMob("kangaroo"), ORIGIN);
         kill(h, kangaroo, player);
         h.runAfterDelay(5, () -> {
-            h.assertTrue(count(h, ModItems.of(MobDefs.byId("kangaroo")).carcass().get()) == 1, "exactly one kangaroo carcass");
+            long carcasses = count(h, ModItems.of(MobDefs.byId("kangaroo")).carcass().get());
+            h.assertTrue(carcasses == 1, "exactly one kangaroo carcass, found " + carcasses + " among " + TestSupport.items(h));
             h.assertTrue(count(h, KANGAROO_MEAT) == 0, "kangaroo meat replaced by the carcass");
             h.assertTrue(count(h, KANGAROO_HIDE) == 0, "kangaroo hide replaced by the carcass");
             h.succeed();
@@ -287,7 +288,7 @@ public final class ButcheryGameTests {
         ((CarcassBlockEntity) h.getBlockEntity(ORIGIN)).setMobData(look);
         h.getLevel().destroyBlock(h.absolutePos(ORIGIN), true, player);
         var drops = TestSupport.items(h).stream().filter(e -> e.getItem().is(ModItems.of(def).skeleton().get())).toList();
-        h.assertTrue(drops.size() == 1, "the skeleton drops itself");
+        h.assertTrue(drops.size() == 1, "the skeleton drops itself, found " + drops.size() + " among " + TestSupport.items(h));
         CompoundTag tag = BlockItem.getBlockEntityData(drops.get(0).getItem());
         h.assertTrue(tag != null && tag.getCompound(CarcassBlockEntity.MOB_DATA).getBoolean("White"), "the dropped skeleton keeps the snapshot");
         h.succeed();

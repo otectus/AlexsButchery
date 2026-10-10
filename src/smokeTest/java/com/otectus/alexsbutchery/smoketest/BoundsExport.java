@@ -76,7 +76,8 @@ final class BoundsExport {
     }
 
     static void write(Path path, Map<String, Object> checks) throws java.io.IOException {
-        Map<String, List<double[]>> result = new LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put(CarcassBounds.INPUTS, CarcassBounds.currentInputs());
         var support = ButcheryHooks.hook().defaultBlockState();
         var anchor = CarcassBounds.support(support).subtract(.5, 1, .5);
         for (MobDef def : MobDefs.all()) for (var block : blocks(def)) for (int stage : block.stateProperty().getPossibleValues()) {
@@ -105,7 +106,7 @@ final class BoundsExport {
         }
         Files.createDirectories(path.getParent());
         Files.writeString(path, new GsonBuilder().create().toJson(result) + "\n");
-        checks.put("bounds_export_entries", result.size());
+        checks.put("bounds_export_entries", result.size() - 1);
     }
 
     private static boolean contains(AABB outer, AABB inner) {

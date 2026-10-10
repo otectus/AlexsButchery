@@ -26,6 +26,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 /**
  * The drawing routines shared by the block entity renderer and the item renderer. Callers position the block space
@@ -38,26 +39,62 @@ public final class CarcassScene {
     public record Subject(MobDef def, CarcassModels.Handle handle, PoseProfile profile, CompoundTag mobData,
                           StageTextures.Look look, Set<Stages.Action> done) {}
 
-    /** A carcass lying on its side (or on its belly, roll 0), centred on the block. */
+    /** A carcass lying on its side (or on its belly, roll 0), centred on a full block. */
     public static void renderLying(Subject s, Direction facing, PoseStack pose, MultiBufferSource buffers, int light) {
+        renderLying(s, facing, 0, pose, buffers, light);
+    }
+
+    /**
+     * A carcass lying on its side (or on its belly, roll 0), centred on the block. Its pose is measured once without any
+     * ground offset ({@link LyingPose}); one translation then puts the lowest solid anatomy on {@code ground}, the
+     * anchor block's floor (below 0 on a slab or path, see {@code CarcassBounds.groundLevel}).
+     */
+    public static void renderLying(Subject s, Direction facing, double ground, PoseStack pose, MultiBufferSource buffers, int light) {
+        Lying lying = lying(s, light);
+        PoseProfile p = s.profile();
+        pose.pushPose();
+        try {
+            pose.translate(0.5 + p.lyingOffset[0], ground + p.lyingOffset[1] - lying.layout().floor(), 0.5 + p.lyingOffset[2]);
+            pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot() + p.lyingYaw));
+            poseLying(p, lying.height(), lying.roll(), lying.centre(), pose);
+            drawCreature(s, lying.shape(), lying.size(), lying.chain(), lying.joints(), lying.layout().lifts(), lying.up(),
+                    pose, part -> buffers, light);
+        } finally { pose.popPose(); }
+    }
+
+    /** How tall the lying carcass is from its lowest solid point to the top of everything drawn, in blocks. */
+    public static float lyingHeight(Subject s) {
+        return lying(s, 15728880).layout().height();
+    }
+
+    private record Lying(CarcassModels.Shape shape, float size, float height, double roll, List<SegmentChain.Placement> chain,
+                         float[] centre, Map<String, HangingPose.Rotation> joints, LyingPose.Layout layout, Vector3f up) {}
+
+    private static Lying lying(Subject s, int light) {
         CarcassModels.Shape shape = s.handle().shape(s.mobData());
         PoseProfile p = s.profile();
         float size = p.scale * shape.scale();
-        float width = shape.width() * size;
         float height = shape.height() * size;
         double roll = Math.toRadians(p.lyingRoll);
         List<SegmentChain.Placement> chain = chain(s, false);
         float[] centre = centre(chain, p.scale);
-        pose.pushPose();
-        // On its side the body's half width is off the ground and its height lies across the block; on its belly neither.
-        pose.translate(0.5 + p.lyingOffset[0], Math.abs(Math.sin(roll)) * width * 0.5 + p.lyingOffset[1], 0.5 + p.lyingOffset[2]);
-        pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot() + p.lyingYaw));
+        Map<String, HangingPose.Rotation> joints = LyingPose.joints(p);
+        LyingPose.Layout layout = LyingPose.get(s, shape, 1 + chain.size(), (left, parts) -> {
+            PoseStack measured = new PoseStack();
+            poseLying(p, height, roll, centre, measured);
+            drawCreature(s, shape, size, chain, joints, null, null, left, measured, parts, light);
+        });
+        // The world's up in the creature's frame, along which each part of a multipart body is lowered.
+        Vector3f up = new Vector3f(0, 1, 0).rotateX((float) Math.toRadians(-p.lyingPitch)).rotateZ((float) -roll);
+        return new Lying(shape, size, height, roll, chain, centre, joints, layout, up);
+    }
+
+    /** Pose within the ground translation; facing yaw is omitted because it cannot change floor height. */
+    private static void poseLying(PoseProfile p, float height, double roll, float[] centre, PoseStack pose) {
         pose.translate(Math.sin(roll) * height * 0.5, 0, 0);
         pose.mulPose(Axis.XP.rotationDegrees(p.lyingPitch));
         pose.mulPose(Axis.ZP.rotationDegrees(p.lyingRoll));
         pose.translate(-centre[0], 0, -centre[1]);
-        drawCreature(s, shape, size, chain, Map.of(), pose, buffers, light);
-        pose.popPose();
     }
 
     /** Hanging geometry seats a real hock, tail or body surface directly on the support above. */
@@ -98,7 +135,7 @@ public final class CarcassScene {
                 pose.mulPose(Axis.XP.rotationDegrees(s.profile().hangingPitch));
                 pose.mulPose(Axis.ZP.rotationDegrees(s.profile().hangingFlip));
             }
-            drawCreature(s, shape, size, chain, legs, pose, buffers, light);
+            drawCreature(s, shape, size, chain, legs, null, null, pose, part -> buffers, light);
         } finally { pose.popPose(); }
     }
 
@@ -138,16 +175,29 @@ public final class CarcassScene {
         return new float[]{x / n * scale, z / n * scale};
     }
 
+    /**
+     * The head model (part 0) and each chain segment (part 1..), each into {@code buffers.apply(part)}. With
+     * {@code lifts}, every part first moves that far along {@code up}, the world's up in this frame, so each part of a
+     * lying multipart body rests on the ground itself.
+     */
     private static void drawCreature(Subject s, CarcassModels.Shape shape, float size, List<SegmentChain.Placement> chain, Map<String, HangingPose.Rotation> legs,
-                                     PoseStack pose, MultiBufferSource buffers, int light) {
+                                     @Nullable float[] lifts, @Nullable Vector3f up, PoseStack pose, IntFunction<MultiBufferSource> buffers, int light) {
+        drawCreature(s, shape, size, chain, legs, lifts, up, Set.of(), pose, buffers, light);
+    }
+
+    /** As above, leaving out the named parts (and what hangs from them): a ground-contact measurement only. */
+    private static void drawCreature(Subject s, CarcassModels.Shape shape, float size, List<SegmentChain.Placement> chain, Map<String, HangingPose.Rotation> legs,
+                                     @Nullable float[] lifts, @Nullable Vector3f up, Set<String> left, PoseStack pose,
+                                     IntFunction<MultiBufferSource> buffers, int light) {
         PoseProfile p = s.profile();
         boolean dropHead = p.segments != null && p.segments.dropHeadModel && s.done().contains(Stages.Action.HEAD);
         if (!dropHead) {
             pose.pushPose();
             try {
+                lift(pose, lifts, up, 0);
                 pose.scale(-size, -size, size);
                 pose.translate(0, -1.501F, 0);
-                drawModel(s.handle(), shape, StageTextures.get(shape.texture(), s.look()), p, s.done(), true, s.look(), s.def().hasSkeleton(), legs, pose, buffers, light);
+                drawModel(s.handle(), shape, StageTextures.get(shape.texture(), s.look()), p, s.done(), true, s.look(), s.def().hasSkeleton(), legs, left, pose, buffers.apply(0), light);
             } finally { pose.popPose(); }
         }
         if (chain.isEmpty()) return;
@@ -155,7 +205,8 @@ public final class CarcassScene {
         for (String key : p.segments.copy) {
             if (s.mobData().contains(key)) shared.put(key, s.mobData().get(key).copy());
         }
-        for (SegmentChain.Placement placement : chain) {
+        for (int index = 0; index < chain.size(); index++) {
+            SegmentChain.Placement placement = chain.get(index);
             CarcassModels.Handle segment = CarcassModels.get(placement.segment().entity());
             if (segment == null) continue;
             CompoundTag data = placement.segment().data();
@@ -165,13 +216,19 @@ public final class CarcassScene {
             ResourceLocation texture = p.segments.headTexture ? shape.texture() : part.texture();
             pose.pushPose();
             try {
+                lift(pose, lifts, up, index + 1);
                 pose.translate(placement.x() * p.scale, 0, placement.z() * p.scale);
                 pose.mulPose(Axis.YP.rotationDegrees(placement.yaw()));
                 pose.scale(-partSize, -partSize, partSize);
                 pose.translate(0, -1.501F, 0);
-                drawModel(segment, part, StageTextures.get(texture, s.look()), p, s.done(), false, s.look(), s.def().hasSkeleton(), Map.of(), pose, buffers, light);
+                drawModel(segment, part, StageTextures.get(texture, s.look()), p, s.done(), false, s.look(), s.def().hasSkeleton(), Map.of(), left, pose, buffers.apply(index + 1), light);
             } finally { pose.popPose(); }
         }
+    }
+
+    private static void lift(PoseStack pose, @Nullable float[] lifts, @Nullable Vector3f up, int part) {
+        if (lifts == null || up == null || part >= lifts.length || lifts[part] == 0F) return;
+        pose.translate(up.x * lifts[part], up.y * lifts[part], up.z * lifts[part]);
     }
 
 
@@ -284,7 +341,7 @@ public final class CarcassScene {
 
     private static void drawModel(CarcassModels.Handle handle, CarcassModels.Shape shape, ResourceLocation texture, PoseProfile profile,
                                   Set<Stages.Action> done, boolean headModel, StageTextures.Look look, boolean hasSkeleton, Map<String, HangingPose.Rotation> legs,
-                                  PoseStack pose, MultiBufferSource buffers, int light) {
+                                  Set<String> left, PoseStack pose, MultiBufferSource buffers, int light) {
         Runnable restore = ModelParts.savePose(shape);
         handle.pose(shape);
         Map<AdvancedModelBox, HangingPose.Rotation> savedAngles = new IdentityHashMap<>();
@@ -301,7 +358,8 @@ public final class CarcassScene {
         boolean cut2 = done.contains(Stages.Action.CUT_2);
         shape.parts().forEach((name, part) -> {
             if (!part.visible()) return;
-            if (profile.isAlwaysHidden(name) || head && profile.isHead(name) || cut1 && profile.isCut1(name) || cut2 && profile.isCut2(name)) {
+            if (profile.isAlwaysHidden(name) || head && profile.isHead(name) || cut1 && profile.isCut1(name) || cut2 && profile.isCut2(name)
+                    || left.contains(name)) {
                 part.setVisible(false);
                 hidden.add(part);
             }

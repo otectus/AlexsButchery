@@ -150,6 +150,7 @@ public final class CarcassModels {
         FAILED.clear();
         StageGeometry.clear();
         HangingPose.clear();
+        LyingPose.clear();
         StageTextures.clear();
         cachedLevel = null;
     }

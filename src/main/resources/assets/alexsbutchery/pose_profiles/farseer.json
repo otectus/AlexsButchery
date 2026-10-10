@@ -31,5 +31,30 @@
   ],
   "cut_2": [],
   "hide": [],
-  "head_root": "head"
+  "head_root": "head",
+  "lying": {
+    "roll": 90,
+    "rotations": {
+      "leftArm": [
+        0,
+        0,
+        90
+      ],
+      "leftArm2": [
+        0,
+        0,
+        90
+      ],
+      "rightArm": [
+        0,
+        0,
+        -90
+      ],
+      "rightArm2": [
+        0,
+        0,
+        -90
+      ]
+    }
+  }
 }

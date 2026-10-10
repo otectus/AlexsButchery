@@ -63,14 +63,10 @@ public final class CarcassItemRenderer extends BlockEntityWithoutLevelRenderer {
             StageTextures.Look look = block instanceof SkeletonBlock ? StageTextures.Look.BONE
                     : block instanceof DrainedCarcassBlock ? StageTextures.Look.DRAINED : StageTextures.Look.FRESH;
             CarcassScene.Subject subject = new CarcassScene.Subject(def, handle, profile, mobData, look, Set.of());
-            CarcassModels.Shape shape = handle.shape(mobData);
             float fit = 0.85F / Math.max(0.3F, CarcassScene.extent(subject));
             pose.scale(fit * 0.5F, fit * 0.5F, fit * 0.5F);
-            // The body's vertical middle: half its width on its side, half its height on its belly.
-            double roll = Math.toRadians(profile.lyingRoll);
-            float size = shape.scale() * profile.scale;
-            float lift = (float) (Math.abs(Math.sin(roll)) * shape.width() + Math.abs(Math.cos(roll)) * shape.height()) * size * 0.5F;
-            pose.translate(-0.5, -lift, -0.5);
+            // The lying body's measured vertical middle, as it rests on the ground.
+            pose.translate(-0.5, -CarcassScene.lyingHeight(subject) * 0.5F, -0.5);
             CarcassScene.renderLying(subject, Direction.SOUTH, pose, buffers, light);
         }
         pose.popPose();

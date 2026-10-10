@@ -2,6 +2,7 @@ package com.otectus.alexsbutchery.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
+import com.otectus.alexsbutchery.block.CarcassBounds;
 import com.otectus.alexsbutchery.block.DrainedCarcassBlock;
 import com.otectus.alexsbutchery.block.HeadBlock;
 import com.otectus.alexsbutchery.block.HeadMountBlock;
@@ -62,7 +63,7 @@ public class CarcassRenderer implements BlockEntityRenderer<CarcassBlockEntity> 
         Direction facing = state.getValue(AbstractCarcassBlock.FACING);
         if (block.hanging(state)) CarcassScene.renderHanging(subject, facing,
                 entity.getLevel().getBlockState(entity.getBlockPos().above()), pose, buffers, light);
-        else CarcassScene.renderLying(subject, facing, pose, buffers, light);
+        else CarcassScene.renderLying(subject, facing, CarcassBounds.groundLevel(entity.getLevel(), entity.getBlockPos()), pose, buffers, light);
     }
 
     @Override

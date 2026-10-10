@@ -15,7 +15,7 @@ Machine-generated map of this mod. Read this first when picking the project up.
 | ForgeGradle | 6.0.54 |
 | Mappings | official 1.20.1 |
 | Parchment plugin | no |
-| Mixins | no |
+| Mixins | yes |
 | Datagen wired into resources | yes |
 
 ## Source layout
@@ -23,20 +23,22 @@ Machine-generated map of this mod. Read this first when picking the project up.
 ```
 com.otectus.alexsbutchery                            1 file
 com.otectus.alexsbutchery.advancement                1 file
-com.otectus.alexsbutchery.block                      10 files
+com.otectus.alexsbutchery.block                      14 files
 com.otectus.alexsbutchery.block.entity               2 files
 com.otectus.alexsbutchery.butcher                    9 files
 com.otectus.alexsbutchery.client                     1 file
 com.otectus.alexsbutchery.client.compat.jei          3 files
 com.otectus.alexsbutchery.client.gui                 1 file
+com.otectus.alexsbutchery.client.mixin               1 file
 com.otectus.alexsbutchery.client.pose                3 files
-com.otectus.alexsbutchery.client.render              8 files
+com.otectus.alexsbutchery.client.render              14 files
 com.otectus.alexsbutchery.compat                     3 files
 com.otectus.alexsbutchery.compat.jade                1 file
 com.otectus.alexsbutchery.config                     2 files
 com.otectus.alexsbutchery.data                       11 files
 com.otectus.alexsbutchery.def                        8 files
 com.otectus.alexsbutchery.item                       1 file
+com.otectus.alexsbutchery.mixin                      2 files
 com.otectus.alexsbutchery.registry                   5 files
 ```
 
@@ -86,6 +88,7 @@ Regenerate with `gradlew runData` (output lands in `src/generated/resources`).
 Run `check_mod.py` for a full consistency check (missing models, lang keys, textures).
 
 <!-- MODMAP:AUTO:END — everything below is hand-maintained and preserved -->
+
 
 ## Current focus
 

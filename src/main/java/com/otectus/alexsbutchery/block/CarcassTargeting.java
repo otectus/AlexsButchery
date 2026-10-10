@@ -2,6 +2,7 @@ package com.otectus.alexsbutchery.block;
 
 import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ClipContext;
@@ -11,10 +12,13 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.Shapes;
 import org.jetbrains.annotations.Nullable;
 
-/** Finds overhanging anatomy in loaded chunks; never creates proxy blocks or loads distant chunks. */
+/**
+ * Finds overhanging anatomy in loaded chunks; never creates proxy blocks or loads distant chunks. Candidates come from
+ * {@link CarcassIndex}, are rejected by their envelope before their anatomy is tested, and only the nearest hit
+ * becomes a hit result. The server runs the same code to validate actions, so client and server agree.
+ */
 public final class CarcassTargeting {
     public static boolean isCarcass(Level level, BlockPos pos) {
         return !level.isOutsideBuildHeight(pos) && level.hasChunkAt(pos)
@@ -23,30 +27,44 @@ public final class CarcassTargeting {
 
     @Nullable
     public static BlockHitResult pick(Level level, Vec3 eye, Vec3 end, Entity viewer) {
+        // Vanilla's own clip finds the nearest real obstacle; a carcass shape on that ray answers it with its anatomy.
         BlockHitResult obstacle = level.clip(new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, viewer));
-        double nearest = obstacle.getType() == HitResult.Type.MISS ? eye.distanceToSqr(end) : eye.distanceToSqr(obstacle.getLocation());
-        BlockHitResult best = obstacle.getType() == HitResult.Type.BLOCK && isCarcass(level, obstacle.getBlockPos()) ? obstacle : null;
+        double length = eye.distanceTo(end);
+        double[] nearest = {obstacle.getType() == HitResult.Type.MISS ? 1 : Math.sqrt(eye.distanceToSqr(obstacle.getLocation())) / length};
+        BlockHitResult[] best = {obstacle.getType() == HitResult.Type.BLOCK && isCarcass(level, obstacle.getBlockPos()) ? obstacle : null};
+        CarcassShape.Hit hit = new CarcassShape.Hit();
+        BlockPos.MutableBlockPos winner = new BlockPos.MutableBlockPos();
+        CarcassShape.Hit won = new CarcassShape.Hit();
+        boolean[] found = {false};
         int radius = CarcassBounds.SEARCH_RADIUS;
-        int minX = ((int) Math.floor(Math.min(eye.x, end.x)) - radius) >> 4;
-        int maxX = ((int) Math.floor(Math.max(eye.x, end.x)) + radius) >> 4;
-        int minZ = ((int) Math.floor(Math.min(eye.z, end.z)) - radius) >> 4;
-        int maxZ = ((int) Math.floor(Math.max(eye.z, end.z)) + radius) >> 4;
-        for (int x = minX; x <= maxX; x++) for (int z = minZ; z <= maxZ; z++) {
-            var chunk = level.getChunkSource().getChunk(x, z, ChunkStatus.FULL, false);
-            if (!(chunk instanceof LevelChunk loaded)) continue;
-            for (var be : loaded.getBlockEntities().values()) {
-                if (!(be instanceof CarcassBlockEntity) || !(be.getBlockState().getBlock() instanceof AbstractCarcassBlock)) continue;
-                if (Math.abs(be.getBlockPos().getY() - eye.y) > radius + eye.distanceTo(end)) continue;
-                for (var box : CarcassBounds.boxes(be.getBlockState(), level, be.getBlockPos())) {
-                    BlockHitResult hit = Shapes.create(box).clip(eye, end, be.getBlockPos());
-                    if (hit != null && eye.distanceToSqr(hit.getLocation()) <= nearest + 1E-7) {
-                        nearest = eye.distanceToSqr(hit.getLocation());
-                        best = hit;
-                    }
-                }
+        double verticalRange = radius + length;
+        int minX = SectionPos.blockToSectionCoord(Math.floor(Math.min(eye.x, end.x)) - radius);
+        int maxX = SectionPos.blockToSectionCoord(Math.floor(Math.max(eye.x, end.x)) + radius);
+        int minZ = SectionPos.blockToSectionCoord(Math.floor(Math.min(eye.z, end.z)) - radius);
+        int maxZ = SectionPos.blockToSectionCoord(Math.floor(Math.max(eye.z, end.z)) + radius);
+        CarcassIndex.visit(level, minX, maxX, minZ, maxZ, packed -> {
+            BlockPos pos = BlockPos.of(packed);
+            var chunk = level.getChunkSource().getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()),
+                    ChunkStatus.FULL, false);
+            // An unloaded chunk keeps its entries for when it returns; a loaded one must still hold the carcass.
+            if (!(chunk instanceof LevelChunk loaded)) return true;
+            if (!(loaded.getBlockEntity(pos, LevelChunk.EntityCreationType.CHECK) instanceof CarcassBlockEntity be)
+                    || !(be.getBlockState().getBlock() instanceof AbstractCarcassBlock)) return false;
+            if (Math.abs(pos.getY() - eye.y) > verticalRange) return true;
+            var geometry = CarcassBounds.geometry(be.getBlockState(), level, pos);
+            double entry = CarcassShape.entry(geometry.envelope(), eye, end, pos);
+            if (entry < 0 || entry > nearest[0] + 1E-7) return true;
+            if (CarcassShape.nearest(geometry.boxes(), eye, end, pos, hit) && hit.t <= nearest[0] + 1E-7 / length) {
+                nearest[0] = hit.t;
+                won.t = hit.t;
+                won.face = hit.face;
+                won.inside = hit.inside;
+                winner.set(pos);
+                found[0] = true;
             }
-        }
-        return best;
+            return true;
+        });
+        return found[0] ? won.result(eye, end, winner.immutable()) : best[0];
     }
 
     @Nullable

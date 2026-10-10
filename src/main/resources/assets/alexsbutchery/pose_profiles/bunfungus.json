@@ -29,5 +29,15 @@
       "left_arm",
       "right_arm"
     ]
+  },
+  "lying": {
+    "ignore": [
+      "left_arm",
+      "right_arm",
+      "left_leg",
+      "right_leg",
+      "left_foot",
+      "right_foot"
+    ]
   }
 }

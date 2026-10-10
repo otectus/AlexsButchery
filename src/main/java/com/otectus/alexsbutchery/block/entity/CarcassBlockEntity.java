@@ -1,5 +1,8 @@
 package com.otectus.alexsbutchery.block.entity;
 
+import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
+import com.otectus.alexsbutchery.block.CarcassBounds;
+import com.otectus.alexsbutchery.block.CarcassIndex;
 import com.otectus.alexsbutchery.block.MobBlock;
 import com.otectus.alexsbutchery.butcher.Acid;
 import com.otectus.alexsbutchery.butcher.Bleeding;
@@ -33,6 +36,19 @@ public class CarcassBlockEntity extends BlockEntity {
 
     public CarcassBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.CARCASS.get(), pos, state);
+    }
+
+    /** Joins the level's carcass index wherever the block entity enters a chunk, on both sides. */
+    @Override
+    public void setLevel(Level level) {
+        super.setLevel(level);
+        CarcassIndex.add(level, worldPosition);
+    }
+
+    @Override
+    public void onChunkUnloaded() {
+        super.onChunkUnloaded();
+        if (level != null) CarcassIndex.remove(level, worldPosition);
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, CarcassBlockEntity carcass) {
@@ -144,9 +160,15 @@ public class CarcassBlockEntity extends BlockEntity {
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
+    /**
+     * Frustum culling for the renderer: the anatomy's own envelope (which the geometry review checks contains every
+     * rendered vertex) plus a block of slack, so a visible tail is drawn while its anchor is off screen.
+     */
     @Override
     public AABB getRenderBoundingBox() {
-        // Floor carcasses of whales, the Laviathan and the Void Worm reach far past their block.
+        if (level != null && getBlockState().getBlock() instanceof AbstractCarcassBlock)
+            return CarcassBounds.geometry(getBlockState(), level, worldPosition).envelope().move(worldPosition).inflate(1);
+        // Heads, trophies and rugs: a whale's or Void Worm's head reaches well past its block.
         boolean big = getBlockState().getBlock() instanceof MobBlock mob && mob.def().floor();
         return big ? new AABB(worldPosition).inflate(12, 8, 12) : new AABB(worldPosition).inflate(5, 7, 5);
     }

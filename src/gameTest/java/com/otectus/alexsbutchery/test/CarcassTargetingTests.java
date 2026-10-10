@@ -23,6 +23,7 @@ import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -32,7 +33,9 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @GameTestHolder(AlexsButchery.MOD_ID)
@@ -67,10 +70,11 @@ public final class CarcassTargetingTests {
     public static void visibleAnatomyAcrossStagesAndFacings(GameTestHelper h) {
         var player = player(h);
         var pos = h.absolutePos(CENTRE);
-        for (String id : new String[]{"laviathan", "elephant", "cachalot_whale", "anaconda", "kangaroo"}) {
+        for (String id : new String[]{"laviathan", "elephant", "cachalot_whale", "anaconda", "kangaroo", "void_worm", "centipede", "farseer"}) {
             var def = MobDefs.byId(id);
-            var block = (AbstractCarcassBlock) ModBlocks.of(def).drained().get();
-            for (int stage : new int[]{0, 1, 3, 4, 5, 7, 8, 9}) for (Direction facing : Direction.Plane.HORIZONTAL) {
+            var entry = ModBlocks.of(def);
+            var block = (AbstractCarcassBlock) (entry.drained() == null ? entry.carcass().get() : entry.drained().get());
+            for (int stage : block.stateProperty().getPossibleValues()) for (Direction facing : Direction.Plane.HORIZONTAL) {
                 var state = block.defaultBlockState().setValue(block.stateProperty(), stage).setValue(AbstractCarcassBlock.FACING, facing);
                 h.getLevel().setBlockAndUpdate(pos, state);
                 h.getLevel().setBlockAndUpdate(pos.above(), block.hanging(state) ? TestSupport.butcheryBlock("hook").defaultBlockState() : Blocks.AIR.defaultBlockState());
@@ -101,6 +105,19 @@ public final class CarcassTargetingTests {
                     : h.getLevel().getBlockState(pos).getValue(AbstractCarcassBlock.BLOCKSTATE_STAGED) == next, "packet performs " + action);
         }
         h.assertTrue(!h.getLevel().getEntitiesOfClass(ItemEntity.class, new AABB(pos).inflate(2)).isEmpty(), "normal stage loot dropped");
+        h.succeed();
+    }
+
+    @GameTest(template = "carcass_space")
+    public static void rayStartingOnOuterSurfaceKeepsInsideHit(GameTestHelper h) {
+        var pos = h.absolutePos(CENTRE);
+        var state = ModBlocks.of(MobDefs.byId("laviathan")).carcass().get().defaultBlockState();
+        h.getLevel().setBlockAndUpdate(pos, state);
+        var outer = CarcassBounds.boxes(state, h.getLevel(), pos).stream().max(Comparator.comparingDouble(b -> b.maxX)).orElseThrow();
+        Vec3 eye = Vec3.atLowerCornerOf(pos).add(outer.maxX, outer.getCenter().y, outer.getCenter().z);
+        var hit = CarcassTargeting.pick(h.getLevel(), eye, eye.add(-3, 0, 0), player(h));
+        h.assertTrue(hit != null && hit.getBlockPos().equals(pos) && hit.isInside(),
+                "an inward ray starting on the maximum face survives broad-phase rejection");
         h.succeed();
     }
 
@@ -135,6 +152,40 @@ public final class CarcassTargetingTests {
         h.succeed();
     }
 
+    /** A protection mod cancelling the use or the break still wins for a distant anchor; without it the same packets act. */
+    @GameTest(template = "carcass_space", timeoutTicks = 100)
+    public static void protectionEventsStillCancelDistantActions(GameTestHelper h) {
+        var player = player(h);
+        var pos = h.absolutePos(CENTRE);
+        var def = MobDefs.byId("laviathan");
+        var state = ModBlocks.of(def).drained().get().defaultBlockState();
+        h.getLevel().setBlockAndUpdate(pos, state);
+        player.setItemInHand(InteractionHand.MAIN_HAND, TestSupport.butcheryItem(Stages.actions(def).get(0).needsKnife() ? "iron_skinning_knife" : "iron_cleaver"));
+        var hit = aim(h, player, pos, 2);
+        h.assertTrue(hit != null && !player.canReach(pos, 1.5), "a far overhang, beyond the anchor reach check");
+        java.util.function.Consumer<net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock> denyUse =
+                e -> { if (e.getPos().equals(pos)) e.setCanceled(true); };
+        java.util.function.Consumer<net.minecraftforge.event.level.BlockEvent.BreakEvent> denyBreak =
+                e -> { if (e.getPos().equals(pos)) e.setCanceled(true); };
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener(denyUse);
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener(denyBreak);
+        try {
+            player.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND, hit, 0));
+            h.assertTrue(h.getLevel().getBlockState(pos) == state, "a cancelled use leaves the carcass alone");
+            player.setGameMode(GameType.CREATIVE);
+            player.gameMode.handleBlockBreakAction(pos, ServerboundPlayerActionPacket.Action.START_DESTROY_BLOCK, Direction.UP, h.getLevel().getMaxBuildHeight(), 1);
+            h.assertTrue(h.getLevel().getBlockState(pos) == state, "a cancelled break leaves the carcass alone");
+        } finally {
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(denyUse);
+            net.minecraftforge.common.MinecraftForge.EVENT_BUS.unregister(denyBreak);
+        }
+        player.setGameMode(GameType.SURVIVAL);
+        aim(h, player, pos, 2);
+        player.connection.handleUseItemOn(new ServerboundUseItemOnPacket(InteractionHand.MAIN_HAND, hit, 2));
+        h.assertTrue(h.getLevel().getBlockState(pos) != state, "without the protection the same use acts");
+        h.succeed();
+    }
+
     @GameTest(template = "carcass_space")
     public static void snapshotAndBoundsSurviveBlockEntityReload(GameTestHelper h) {
         var pos = h.absolutePos(CENTRE);
@@ -148,6 +199,104 @@ public final class CarcassTargetingTests {
         h.getLevel().setBlockEntity(BlockEntity.loadStatic(pos, state, saved));
         h.assertTrue(boxes.equals(CarcassBounds.boxes(state, h.getLevel(), pos)), "variant and rotated bounds survive reload");
         h.assertTrue(aim(h, player(h), pos, 2) != null, "reloaded carcass remains targetable");
+        h.succeed();
+    }
+
+    /** Every form, stage and appearance variant the game can place has exported anatomy: no one-block fallback. */
+    @GameTest(template = "empty")
+    public static void boundsCoverEveryCarcassFormStageAndVariant(GameTestHelper h) {
+        List<String> missing = new ArrayList<>();
+        int checked = 0;
+        for (var def : MobDefs.all()) {
+            var entry = ModBlocks.of(def);
+            for (var holder : new Object[]{entry.carcass(), entry.drained(), entry.skeleton()}) {
+                if (holder == null) continue;
+                var block = (AbstractCarcassBlock) ((net.minecraftforge.registries.RegistryObject<?>) holder).get();
+                for (int stage : block.stateProperty().getPossibleValues()) for (var data : variants(def.id())) {
+                    var state = block.defaultBlockState().setValue(block.stateProperty(), stage);
+                    checked++;
+                    if (!CarcassBounds.exported(state, data)) missing.add(CarcassBounds.key(state, data));
+                }
+            }
+        }
+        h.assertTrue(missing.isEmpty(), "no exported bounds for " + missing);
+        h.assertTrue(checked > 1000, "checked " + checked + " forms");
+        h.succeed();
+    }
+
+    /** A pose profile, dependency or geometry change without a fresh export cannot ship unnoticed. */
+    @GameTest(template = "empty")
+    public static void boundsWereExportedFromTheseInputs(GameTestHelper h) {
+        var exported = CarcassBounds.exportInputs();
+        var current = CarcassBounds.currentInputs();
+        h.assertTrue(current.equals(exported), "carcass_bounds.json was exported from " + exported + ", sources are now " + current
+                + "; re-run runClient -PsmokeTest -PexportBounds");
+        h.succeed();
+    }
+
+    /** The appearance variants {@link CarcassBounds#variant} distinguishes, as the bounds export renders them. */
+    private static List<CompoundTag> variants(String mob) {
+        List<CompoundTag> data = new ArrayList<>();
+        data.add(new CompoundTag());
+        java.util.function.Consumer<java.util.function.Consumer<CompoundTag>> add = edit -> { var nbt = new CompoundTag(); edit.accept(nbt); data.add(nbt); };
+        switch (mob) {
+            case "catfish" -> { add.accept(n -> n.putInt("CatfishSize", 1)); add.accept(n -> n.putInt("CatfishSize", 2)); }
+            case "elephant" -> add.accept(n -> n.putBoolean("Tusked", true));
+            case "blobfish" -> add.accept(n -> n.putBoolean("Depressurized", true));
+            case "bison" -> add.accept(n -> n.putInt("Age", -24000));
+            case "gorilla" -> add.accept(n -> n.putBoolean("Silverback", true));
+            case "gelada_monkey" -> add.accept(n -> n.putBoolean("Leader", true));
+            case "leafcutter_ant" -> add.accept(n -> n.putBoolean("Queen", true));
+            case "flutter" -> add.accept(n -> n.putBoolean("Potted", true));
+            default -> {}
+        }
+        return data;
+    }
+
+    /** On a slab or path the lying anatomy sinks to the support's top, for selection exactly as for rendering. */
+    @GameTest(template = "carcass_space")
+    public static void partialSupportLowersSelection(GameTestHelper h) {
+        var pos = h.absolutePos(CENTRE);
+        var state = ModBlocks.of(MobDefs.byId("laviathan")).carcass().get().defaultBlockState();
+        h.getLevel().setBlockAndUpdate(pos.below(), Blocks.STONE.defaultBlockState());
+        h.getLevel().setBlockAndUpdate(pos, state);
+        var full = CarcassBounds.geometry(state, h.getLevel(), pos).envelope();
+        for (var support : new net.minecraft.world.level.block.state.BlockState[]{Blocks.SMOOTH_STONE_SLAB.defaultBlockState(),
+                Blocks.DIRT_PATH.defaultBlockState(), Blocks.SOUL_SAND.defaultBlockState(), Blocks.WHITE_CARPET.defaultBlockState()}) {
+            h.getLevel().setBlockAndUpdate(pos.below(), support);
+            double top = support.getCollisionShape(h.getLevel(), pos.below()).max(net.minecraft.core.Direction.Axis.Y);
+            var lowered = CarcassBounds.geometry(state, h.getLevel(), pos).envelope();
+            h.assertTrue(Math.abs(lowered.minY - (full.minY + top - 1)) < 1E-9 && Math.abs(lowered.maxX - full.maxX) < 1E-9,
+                    support + " lowers the anatomy by " + (1 - top));
+            // A level ray just above the support's surface, under the full-block anatomy, now meets the carcass.
+            Vec3 eye = Vec3.atLowerCornerOf(pos).add(lowered.maxX + 2, top - 1 + .03, .5);
+            var hit = CarcassTargeting.pick(h.getLevel(), eye, eye.add(-4, 0, 0), player(h));
+            h.assertTrue(hit != null && hit.getBlockPos().equals(pos), support + ": the lowered body is selectable");
+        }
+        h.getLevel().setBlockAndUpdate(pos.below(), Blocks.AIR.defaultBlockState());
+        h.assertTrue(CarcassBounds.geometry(state, h.getLevel(), pos).envelope().equals(full), "nothing below: the block's own height");
+        h.succeed();
+    }
+
+    /** The index finds a carcass placed anywhere, forgets one that was removed, and finds one placed again. */
+    @GameTest(template = "carcass_space")
+    public static void indexFollowsPlacementRemovalAndReload(GameTestHelper h) {
+        var player = player(h);
+        var pos = h.absolutePos(CENTRE);
+        var state = ModBlocks.of(MobDefs.byId("elephant")).carcass().get().defaultBlockState();
+        h.getLevel().setBlockAndUpdate(pos, state);
+        h.assertTrue(aim(h, player, pos, 2) != null, "placed carcass is found");
+        h.getLevel().removeBlock(pos, false);
+        Vec3 eye = player.getEyePosition();
+        h.assertTrue(CarcassTargeting.pick(h.getLevel(), eye, eye.add(player.getLookAngle().scale(5)), player) == null,
+                "removed carcass is not found");
+        h.getLevel().setBlockAndUpdate(pos, ModBlocks.of(MobDefs.byId("elephant")).drained().get().defaultBlockState());
+        h.assertTrue(aim(h, player, pos, 2) != null, "a carcass placed again is found");
+        // A block entity replaced by a reload of its saved data, as on chunk reload.
+        var saved = h.getLevel().getBlockEntity(pos).saveWithFullMetadata();
+        h.getLevel().removeBlockEntity(pos);
+        h.getLevel().setBlockEntity(BlockEntity.loadStatic(pos, h.getLevel().getBlockState(pos), saved));
+        h.assertTrue(aim(h, player, pos, 2) != null, "reloaded carcass is found");
         h.succeed();
     }
 

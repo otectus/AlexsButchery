@@ -33,5 +33,17 @@
     "attachment": [
       "body"
     ]
+  },
+  "lying": {
+    "ignore": [
+      "legfront_left",
+      "legfront_right",
+      "legback_left",
+      "legback_right",
+      "shoulder_left",
+      "shoulder_right",
+      "arm_left",
+      "arm_right"
+    ]
   }
 }

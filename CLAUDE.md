@@ -18,12 +18,15 @@ Version numbers live only in `gradle.properties`; `processResources` expands the
 - `.mcmod-tools/gradlew-quiet.sh <dir> compileJava compileGameTestJava compileSmokeTestJava` - compile all source sets
 - `... runData` - regenerate `src/generated/resources` from the mob table (`def/MobDefs`); rerun after any table change
 - `... runGameTestServer` - headless GameTests (`src/gameTest`, template `alexsbutchery:empty`); read
-  `run-gametest/logs/latest.log` for the pass/fail summary, the task itself exits 0 either way
+  `run-gametest/logs/latest.log` for the pass/fail summary, the task itself exits 0 either way. Knife rules need the
+  matrix: with and without `-PwithFarmersDelight` (adds the generated `knives` batch), each with and without
+  `-Pbutchery_artifact=butchery-5.3-forge`. A run fails when Farmer's Delight's presence disagrees with the flag.
 - `... runClient -PsmokeTest` - the smoke-test agent (`src/smokeTest`) creates a flat world, stages every pilot
   carcass stage, writes `run/screenshots/smoketest_*.png` and `run/smoketest/smoketest-result.json`, then quits
 - Add `-PhangingReview` for attachment checks and the hanging galleries only, including the hook-study room
 - Add `-PgeometryReview` for all rug orientations, rendered selection bounds, Laviathan frame interpolation, and real client targeting/butchery. `-PgeometryReload` reopens that saved gallery and checks persistence.
-- `... runClient -PsmokeTest -PexportBounds` exports posed anatomy to `run/smoketest/carcass_bounds.json`; copy it to `src/generated/resources/data/alexsbutchery/carcass_bounds.json` after renderer/profile/dependency changes, then run the geometry review.
+- `... runClient -PsmokeTest -PexportBounds` exports posed anatomy to `run/smoketest/carcass_bounds.json`; copy it to `src/generated/resources/data/alexsbutchery/carcass_bounds.json` after renderer/profile/dependency changes, then run the geometry review. The export records its inputs (`CarcassBounds.GEOMETRY_REVISION`, Alex's Mobs and Citadel versions, a pose-profile hash) and a GameTest fails on a stale export: bump the revision when posing or stage-geometry code changes.
+- `-PperfBench=<label>` benchmarks frame time and targeting in fixed scenes (`run/smoketest/perf-<label>.json`); `-PsaveCompat=create|verify` writes and checks an old-save fixture; `-PremoteServer=host:port` runs the interaction checks against a dedicated server (dev player `Dev` must be an operator there).
 - `... build smokeTestJar` - mod jar + agent jar; `python3 tools/packtest/ultima_pack_test.py` runs them in a copy of the Ultima instance
 - `python3 tools/generate_textures.py --write|--check|--preview out.png` - item icons and rug pelts from `art/butchery_art.py`; authored food cuts live in `art/food_art.py`
 - `python3 .mcmod-tools/check_mod.py AlexsButchery` - models, lang and version checks (its item notes are false positives from loop registration)
@@ -37,15 +40,21 @@ block/     AbstractCarcassBlock (blockstate 0..1 / 0..9, Butchery numbering; aci
            bleeds), StagedCarcassBlock (skinless mobs cut on the fresh block), DrainedCarcassBlock, SkeletonBlock (what acid
            leaves), HeadBlock, HeadMountBlock, RugBlock (pelt model + head BER); entity/CarcassBlockEntity (mob NBT snapshot,
            bleed and acid clocks)
+           CarcassBounds (exported anatomy per form/stage/variant/facing/support, one cached Geometry each), CarcassShape (what
+           vanilla sees: envelope grid, exact boxes for clipping, outline from box edges), CarcassIndex (carcass positions per
+           level/chunk), CarcassTargeting (picker shared by client and server validation; mixins in mixin/ and client/mixin/)
            SkinRackBlock (Butchery's rack taken over while one of our skins cures)
-butcher/   KillHandler (LivingDropsEvent), HangHandler (Butchery hook/rope), RackTakeoverHandler, Bleeding, Acid, CutMachine +
+butcher/   KillHandler (LivingDropsEvent; floor carcasses placed where a falling block would rest), HangHandler (Butchery hook/rope), RackTakeoverHandler, Bleeding, Acid, CutMachine +
            Stages (state machine), CarcassLoot (rolls stage tables, applies Substitutions)
 advancement/ ButcheringTrigger (criterion alexsbutchery:butchering: action, mob, floor), registered in common setup
-compat/    ButcheryHooks (every Butchery member we touch, incl. granting its advancements after their parent), MobSnapshot,
+compat/    ButcheryHooks (every Butchery member we touch, incl. granting its advancements after their parent; the kill rule
+           and Butchery 5.3's optional Farmer's Delight knife option, read reflectively so 5.2 still links), MobSnapshot,
            Substitutions (other mods' items), jade/ (Jade plugin: server data + tooltip lines; loaded by Jade's annotation)
 client/    ClientSetup, pose/ (PoseProfile JSON per mob id, SegmentChain for multipart bodies), render/ (CarcassModels runs each
            renderer's scale hook per snapshot to get its model and size; CarcassScene draws Alex's Mobs' own models for
-           blocks and items; HangingPose seats and balances solid anatomy directly on the support with reversible joint poses; StageTextures composites appearance layers and supplies drained/tissue materials; StageGeometry supplies muscle and bone meshes), gui/ (floor carcass hint),
+           blocks and items; HangingPose seats and balances solid anatomy directly on the support with reversible joint poses;
+           LyingPose measures the posed solid anatomy once so lying carcasses rest on the ground (CarcassBounds.groundLevel: a
+           slab or path below lowers them, render and selection alike); PoseKey is both caches' key; StageTextures composites appearance layers and supplies drained/tissue materials; StageGeometry supplies muscle and bone meshes), gui/ (floor carcass hint),
            compat/jei/ (Butchering tab)
 data/      datagen providers; src/generated/resources comes from here except carcass_bounds.json (the client mesh exporter),
            including ModAdvancements and ModGuideBook (Patchouli pages under assets/butchery/patchouli_books/butchers_guide)
@@ -54,13 +63,15 @@ def/       also ItemDefs: the meats, skins and trophies this mod adds; art/butch
 ```
 
 ## Key Dependencies
-- Butchery 5.2 (`libs/`, All Rights Reserved, never bundled) - hard dependency; MCreator mod with no API, so we call its
-  public static procedures and read its config through `compat/ButcheryHooks` only
+- Butchery 5.2 or 5.3 (`libs/`, All Rights Reserved, never bundled; builds against 5.2 by default) - hard dependency;
+  MCreator mod with no API, so we call its public static procedures and read its config through `compat/ButcheryHooks`
+  only. Members newer than 5.2 are read reflectively there, never linked.
 - Alex's Mobs 1.22.9 + Citadel 2.6.3 (Modrinth Maven) - hard dependencies; models are Citadel `AdvancedEntityModel`s
 - JEI - optional, compileOnly
 - Jade (CurseMaven file id) and Patchouli (Modrinth) - optional; compileOnly/runtimeOnly Jade, runtimeOnly Patchouli, so
   dev runs, GameTests and the smoke test load both
-- Farmer's Delight - optional, data only (conditional cutting recipes); not in dev, covered by the Ultima pack test
+- Farmer's Delight - optional, data only (conditional cutting recipes, knife tag reads); in dev runs only with
+  `-PwithFarmersDelight` (Modrinth, `farmersdelight_version`), also covered by the Ultima pack test
 
 ## Conventions
 - Registration on the mod bus in `registry/`; gameplay handlers are `@Mod.EventBusSubscriber` classes on the Forge bus.
