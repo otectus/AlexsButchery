@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:bunfungus",
+  "groups": {
+    "meat": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsdelight:raw_bunfungus",
+        "alexsdelight:cooked_bunfungus"
+      ],
+      "item": "alexsdelight:raw_bunfungus"
+    }
+  },
+  "provider": "alexsdelight",
+  "required_mods": [
+    "alexsdelight"
+  ],
+  "schema_version": 1
+}

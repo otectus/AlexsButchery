@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -27,17 +28,19 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Server-owned selection geometry exported from the posed meshes by the client smoke-test workflow. Each carcass
- * resolves to one immutable {@link Geometry}, shared by every carcass of the same form, stage, facing, size and
- * support: the anatomy boxes picking tests, their envelope for broad rejection, and the shape vanilla draws.
+ * Server-owned selection geometry exported from the posed meshes by the client smoke-test workflow. Each carcass,
+ * skeleton, head and head mount resolves to one immutable {@link Geometry}, shared by every block of the same form,
+ * stage, facing, size and support: the anatomy boxes picking tests, their envelope for broad rejection, and the shape
+ * vanilla draws. The export ({@code data/alexsbutchery/carcass_bounds.json}) is a main resource, never a datagen output.
  */
 public final class CarcassBounds {
     public static final int SEARCH_RADIUS = 32;
     /**
      * Bump whenever posing or stage geometry changes what the bounds export writes (CarcassScene, LyingPose,
-     * HangingPose, StageGeometry, ModelParts), then re-export; the export records it with its other inputs.
+     * HangingPose, StageGeometry, ModelParts, head and trophy placement), then re-export; the export records it with its
+     * other inputs. 4: heads and head mounts. 5: solid head contact and wall plaque geometry.
      */
-    public static final int GEOMETRY_REVISION = 2;
+    public static final int GEOMETRY_REVISION = 5;
     /** Snapshot sizes are trusted up to this; Alex's Mobs' own scaled creatures stay far below it. */
     private static final double MAX_SCALE = 4;
     private static final CompoundTag NO_DATA = new CompoundTag();
@@ -87,7 +90,8 @@ public final class CarcassBounds {
 
     /**
      * What an export made now would record: the geometry revision, the Alex's Mobs and Citadel versions whose models
-     * it measures, and a hash of the bundled pose profiles (read from this mod's own resources on either side).
+     * it measures, and a hash of the bundled pose profiles (read from this mod's own resources on either side). The
+     * hash takes the mobs in id order, so the build's {@code checkCarcassBounds} recomputes it from the profile files.
      */
     public static JsonObject currentInputs() {
         JsonObject inputs = new JsonObject();
@@ -96,9 +100,12 @@ public final class CarcassBounds {
                 .getModContainerById(mod).map(c -> c.getModInfo().getVersion().toString()).orElse("absent"));
         try {
             var digest = java.security.MessageDigest.getInstance("SHA-256");
-            for (var def : com.otectus.alexsbutchery.def.MobDefs.all()) {
-                digest.update((def.id() + "\n").getBytes(StandardCharsets.UTF_8));
-                try (var profile = CarcassBounds.class.getResourceAsStream("/assets/alexsbutchery/pose_profiles/" + def.id() + ".json")) {
+            List<String> ids = new ArrayList<>();
+            for (var def : com.otectus.alexsbutchery.def.MobDefs.all()) ids.add(def.id());
+            ids.sort(null);
+            for (String id : ids) {
+                digest.update((id + "\n").getBytes(StandardCharsets.UTF_8));
+                try (var profile = CarcassBounds.class.getResourceAsStream("/assets/alexsbutchery/pose_profiles/" + id + ".json")) {
                     if (profile != null) digest.update(profile.readAllBytes());
                 }
             }
@@ -113,6 +120,8 @@ public final class CarcassBounds {
         return switch (mob) {
             case "catfish" -> "size" + Math.max(0, Math.min(2, data.getInt("CatfishSize")));
             case "elephant" -> data.getBoolean("Tusked") ? "tusked" : "default";
+            // An absent snapshot uses the donor's antlered default; explicit false is the shed-antler variant.
+            case "moose" -> !data.contains("Antlered") || data.getBoolean("Antlered") ? "antlered" : "default";
             case "blobfish" -> data.getBoolean("Depressurized") ? "depressurized" : "default";
             case "bison" -> data.getInt("Age") < 0 ? "baby" : "default";
             case "gorilla" -> data.getBoolean("Silverback") ? "silverback" : "default";
@@ -143,9 +152,23 @@ public final class CarcassBounds {
         return Double.isFinite(value) && value > .05 && value <= MAX_SCALE ? value : 1;
     }
 
+    /** Blocks whose selection follows exported anatomy: carcasses and skeletons, heads and head mounts. */
+    public static boolean selectable(Block block) {
+        return block instanceof AbstractCarcassBlock || block instanceof HeadBlock;
+    }
+
+    /** The form part of an export key: a carcass's stage number, {@code head} or {@code mount}. */
+    public static String form(BlockState state) {
+        Block block = state.getBlock();
+        if (block instanceof AbstractCarcassBlock carcass) return Integer.toString(carcass.stage(state));
+        if (block instanceof HeadMountBlock) return "mount";
+        if (block instanceof HeadBlock) return "head";
+        throw new IllegalArgumentException("No exported anatomy for " + state);
+    }
+
     public static String key(BlockState state, CompoundTag data) {
-        var block = (AbstractCarcassBlock) state.getBlock();
-        return ForgeRegistries.BLOCKS.getKey(block).getPath() + "/" + block.stage(state) + "/" + variant(block.def().id(), data);
+        var block = (MobBlock) state.getBlock();
+        return ForgeRegistries.BLOCKS.getKey(state.getBlock()).getPath() + "/" + form(state) + "/" + variant(block.def().id(), data);
     }
 
     /** Whether this form, stage and snapshot variant has anatomy of its own in the bundled export. */
@@ -157,21 +180,24 @@ public final class CarcassBounds {
         return geometry(state, level, pos).boxes();
     }
 
+    /** Where a head or trophy sits: its block's own coordinates, never lowered or hung. */
+    private static final Vec3 TROPHY = new Vec3(.5, 0, .5);
+
     public static Geometry geometry(BlockState state, BlockGetter level, BlockPos pos) {
         CompoundTag data = level.getBlockEntity(pos) instanceof CarcassBlockEntity be ? be.mobData() : NO_DATA;
-        var block = (AbstractCarcassBlock) state.getBlock();
+        if (!(state.getBlock() instanceof AbstractCarcassBlock block)) return geometry(state, data, TROPHY);
         Vec3 anchor = block.hanging(state) ? support(level.getBlockState(pos.above())) : new Vec3(.5, groundLevel(level, pos), .5);
         return geometry(state, data, anchor);
     }
 
-    /** Detached geometry, on a full block or hanging from {@code support}. */
+    /** Detached geometry, on a full block or hanging from {@code support} (ignored for heads and mounts). */
     public static List<AABB> boxes(BlockState state, CompoundTag data, BlockState support) {
-        var block = (AbstractCarcassBlock) state.getBlock();
+        if (!(state.getBlock() instanceof AbstractCarcassBlock block)) return geometry(state, data, TROPHY).boxes();
         return geometry(state, data, block.hanging(state) ? support(support) : new Vec3(.5, 0, .5)).boxes();
     }
 
     private static Geometry geometry(BlockState state, CompoundTag data, Vec3 anchor) {
-        var block = (AbstractCarcassBlock) state.getBlock();
+        var block = (MobBlock) state.getBlock();
         String variant = variant(block.def().id(), data);
         double scale = scale(block.def().id(), data);
         Key key = new Key(state, variant, scale, anchor.x, anchor.y, anchor.z);
@@ -186,8 +212,7 @@ public final class CarcassBounds {
     }
 
     private static Geometry build(BlockState state, String variant, double scale, Vec3 anchor) {
-        var block = (AbstractCarcassBlock) state.getBlock();
-        String prefix = ForgeRegistries.BLOCKS.getKey(block).getPath() + "/" + block.stage(state) + "/";
+        String prefix = ForgeRegistries.BLOCKS.getKey(state.getBlock()).getPath() + "/" + form(state) + "/";
         JsonArray json = definitions().getAsJsonArray(prefix + variant);
         if (json == null) {
             // A variant without an export of its own takes its default form; only a missing form falls back to one block.
@@ -195,35 +220,60 @@ public final class CarcassBounds {
             if (REPORTED.add(prefix + variant)) AlexsButchery.LOGGER.warn("No carcass bounds for {}; using {}", prefix + variant,
                     json != null ? prefix + "default" : "a single block");
         }
+        Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
         List<AABB> boxes = new ArrayList<>();
-        if (json == null) boxes.add(new AABB(0, 0, 0, 1, .625, 1));
-        else {
-            Direction facing = state.getValue(AbstractCarcassBlock.FACING);
-            boolean hanging = block.hanging(state);
-            for (var element : json) {
+        if (state.getBlock() instanceof AbstractCarcassBlock block) {
+            if (json == null) boxes.add(new AABB(0, 0, 0, 1, .625, 1));
+            else {
+                boolean hanging = block.hanging(state);
+                for (var element : json) {
+                    var a = element.getAsJsonArray();
+                    AABB b = null;
+                    for (int i = 0; i < 8; i++) {
+                        double x = (a.get((i & 1) == 0 ? 0 : 3).getAsDouble() - .5) * scale;
+                        double y = (a.get((i & 2) == 0 ? 1 : 4).getAsDouble() - (hanging ? 1 : 0)) * scale;
+                        double z = (a.get((i & 4) == 0 ? 2 : 5).getAsDouble() - .5) * scale;
+                        AABB point = new AABB(turn(facing, anchor, x, y, z), turn(facing, anchor, x, y, z));
+                        b = b == null ? point : b.minmax(point);
+                    }
+                    boxes.add(b);
+                }
+            }
+        } else {
+            // Heads and mounts are exported facing north in their block's coordinates. A snapshot size scales the head
+            // about where it rests: the middle of the floor, or for a mount the plaque's wood surface.
+            boolean mount = state.getBlock() instanceof HeadMountBlock;
+            Vec3 pivot = mount ? new Vec3(.5, .5, HeadMountBlock.FACE) : new Vec3(.5, 0, .5);
+            if (json == null) boxes.add(mount ? HeadMountBlock.plaque(((HeadBlock) state.getBlock()).def().mount(), facing).bounds() : HeadBlock.REST.bounds());
+            else for (var element : json) {
                 var a = element.getAsJsonArray();
                 AABB b = null;
                 for (int i = 0; i < 8; i++) {
-                    double x = (a.get((i & 1) == 0 ? 0 : 3).getAsDouble() - .5) * scale;
-                    double y = (a.get((i & 2) == 0 ? 1 : 4).getAsDouble() - (hanging ? 1 : 0)) * scale;
-                    double z = (a.get((i & 4) == 0 ? 2 : 5).getAsDouble() - .5) * scale;
-                    // Exact cardinal rotations keep every facing's coordinates on the exported 1/32 grid.
-                    Vec3 v = switch (facing) {
-                        case SOUTH -> new Vec3(anchor.x - x, anchor.y + y, anchor.z - z);
-                        case WEST -> new Vec3(anchor.x + z, anchor.y + y, anchor.z - x);
-                        case EAST -> new Vec3(anchor.x - z, anchor.y + y, anchor.z + x);
-                        default -> new Vec3(anchor.x + x, anchor.y + y, anchor.z + z);
-                    };
-                    AABB point = new AABB(v, v);
+                    double x = (a.get((i & 1) == 0 ? 0 : 3).getAsDouble() - pivot.x) * scale + pivot.x - .5;
+                    double y = (a.get((i & 2) == 0 ? 1 : 4).getAsDouble() - pivot.y) * scale + pivot.y;
+                    double z = (a.get((i & 4) == 0 ? 2 : 5).getAsDouble() - pivot.z) * scale + pivot.z - .5;
+                    AABB point = new AABB(turn(facing, anchor, x, y, z), turn(facing, anchor, x, y, z));
                     b = b == null ? point : b.minmax(point);
                 }
                 boxes.add(b);
             }
+            // Butchery's plaque, drawn with the head, is part of the trophy.
+            if (mount && json != null) boxes.add(HeadMountBlock.plaque(((HeadBlock) state.getBlock()).def().mount(), facing).bounds());
         }
         AABB envelope = boxes.get(0);
         for (int i = 1; i < boxes.size(); i++) envelope = envelope.minmax(boxes.get(i));
         List<AABB> immutable = List.copyOf(boxes);
         return new Geometry(immutable, envelope, new CarcassShape(immutable, envelope));
+    }
+
+    /** Exact cardinal rotations about the anchor keep every facing's coordinates on the exported 1/32 grid. */
+    private static Vec3 turn(Direction facing, Vec3 anchor, double x, double y, double z) {
+        return switch (facing) {
+            case SOUTH -> new Vec3(anchor.x - x, anchor.y + y, anchor.z - z);
+            case WEST -> new Vec3(anchor.x + z, anchor.y + y, anchor.z - x);
+            case EAST -> new Vec3(anchor.x - z, anchor.y + y, anchor.z + x);
+            default -> new Vec3(anchor.x + x, anchor.y + y, anchor.z + z);
+        };
     }
 
     public static VoxelShape shape(BlockState state, BlockGetter level, BlockPos pos) {

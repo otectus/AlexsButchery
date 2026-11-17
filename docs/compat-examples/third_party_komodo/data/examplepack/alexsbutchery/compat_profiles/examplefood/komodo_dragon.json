@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "comment": "A third-party food mod (here the placeholder id examplefood) supplying komodo meat. Inactive unless that mod is installed; replace the ids with a real mod's.",
+  "entity": "alexsmobs:komodo_dragon",
+  "provider": "examplefood",
+  "required_mods": ["examplefood"],
+  "groups": {
+    "meat": {
+      "item": "examplefood:raw_komodo_meat",
+      "count_mode": "native_group",
+      "death_equivalents": ["examplefood:raw_komodo_meat", "examplefood:cooked_komodo_meat"]
+    }
+  }
+}

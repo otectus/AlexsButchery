@@ -3,6 +3,7 @@ package com.otectus.alexsbutchery.data;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.otectus.alexsbutchery.def.ItemDefs;
+import com.otectus.alexsbutchery.def.DeathSpawnMode;
 import com.otectus.alexsbutchery.def.MobDef;
 import com.otectus.alexsbutchery.def.MobDefs;
 import com.otectus.alexsbutchery.def.SkinStep;
@@ -62,18 +63,22 @@ final class ModGuideBook implements DataProvider {
                         + "what every step yields and which tool comes next."));
 
         entry(cache, "hook_carcasses", "Hook Carcasses", carcass(MobDefs.byId("kangaroo")), 1,
-                spotlight(carcasses(def -> def.bleeds() && !def.floor()), "On the Hook",
+                spotlight(carcasses(def -> def.bleeds() && def.hookable()), "On the Hook",
                         "Hang the carcass on a hook or a rope by right-clicking it with the carcass. A cleaver starts the bleeding: small "
                                 + "creatures give 250 mB of blood, the rest 1000 mB, into a $(l:butchery:blocks/blood_grate)blood grate$() below."),
                 text("Once drained, the cleaver takes the head, the skinning knife takes the skin, and three more cleaver cuts give the "
                         + "meat, fat, bones and Butchery's organs. A drained carcass can also be taken down and butchered on the ground."));
 
         entry(cache, "floor_carcasses", "Floor Carcasses", carcass(MobDefs.byId("elephant")), 2,
-                spotlight(carcasses(MobDef::floor), "Where It Falls",
-                        "Elephants, whales, the Laviathan and a few other giants are far too heavy to carry. Their carcass falls where "
-                                + "they die. Bleed it with a cleaver right there, 2000 mB of blood, then cut it up in place."),
-                text("A blood grate under the carcass still catches the blood; without one it pools on the ground. The Void Worm needs "
-                        + "Butchery's boss tool, the netherite cleaver, for the killing blow before it leaves a carcass at all."));
+                spotlight(carcasses(def -> def.deathSpawnMode() == DeathSpawnMode.PLACED_BLOCK), "Where It Falls",
+                        "By default, elephants, whales, the Laviathan and a few other giants create a placed carcass where they die. "
+                                + "They cannot hang, so bleed them with a cleaver there for 2000 mB of blood, then cut them up in place."),
+                text("Placed-at-death does not forbid transport: breaking a whole giant carcass still recovers its item. A blood grate "
+                        + "under it catches the blood; without one it pools. The Void Worm needs the netherite cleaver for the killing blow."),
+                text("Server owners can change representation independently in alexsbutchery-server.toml under $(l)carcasses$(): "
+                        + "$(l)deathSpawnMode$() is SPECIES_DEFAULT or PLACED_BLOCK; $(l)deathSpawnOverrides$() uses entries such as "
+                        + "alexsmobs:moose=PLACED_BLOCK or alexsmobs:elephant=ITEM. Add actual entity IDs to $(l)groundBleedingMobs$() "
+                        + "separately to let those fresh carcasses drain while lying down. These world settings require a restart."));
 
         entry(cache, "birds", "Birds", carcass(MobDefs.byId("roadrunner")), 3,
                 spotlight(carcasses(def -> def.skin() == SkinStep.PLUCK), "Plucking",
@@ -120,8 +125,27 @@ final class ModGuideBook implements DataProvider {
                 spotlight(itemDefs(ItemDefs.Kind.RAW_MEAT), "Wild Meats",
                         "New meats cook in a furnace, smoker or over a campfire. On Farmer's Delight's cutting board a knife turns them "
                                 + "into minced beef, chicken cuts, bacon or cod slices for its recipes."),
-                text("With Alex's Mobs Delight installed, the carcasses yield that mod's bear, emu, seal, whale and other meats "
-                        + "instead of ours, so there is only one of each."));
+                text("With a cooking addon installed, Alex's Mobs Delight or Alex's Delight, carcasses give that addon's own meat "
+                        + "for the creatures it covers instead of ours, ready for its recipes. See $(l:butchery:alexsbutchery/cooking_addons)Cooking "
+                        + "Addons$()."));
+
+        entry(cache, "cooking_addons", "Cooking Addons", "alexsbutchery:raw_bear_meat", 10,
+                text("Two different addons cook Alex's Mobs creatures with Farmer's Delight: $(l)Alex's Mobs Delight$() and "
+                        + "$(l)Alex's Delight$(). With either installed, a carcass gives the addon's own meat for each creature it "
+                        + "covers, ready for its cutting board, cooking pot and meals. Hides, fur, fat, hooves, bones, heads and "
+                        + "organs stay the same."),
+                text("A grizzly bear gives Alex's Mobs Delight bear meat, a crocodile its crocodile meat and a bison its bison "
+                        + "meat, or Alex's Delight raw bison when only that addon is installed. With both, Alex's Mobs Delight comes "
+                        + "first; the server's config can change that. Without either, carcasses give this mod's own meats and "
+                        + "Butchery's steaks."),
+                text("A creature killed for its carcass does not also drop its ordinary meat: the carcass stands for it, even "
+                        + "burnt. Claws, tails, ears, hats and other special parts still drop. A mantis shrimp's tail matches its "
+                        + "colour."),
+                text("Older bear, seal, whale, tusklin and froststalker meat and turtle shells can be crafted into the addon's own, "
+                        + "bunfungus meat into Alex's Delight's. Reptile meat, game bird and Butchery's steaks cannot: they could "
+                        + "have come from several creatures. JEI's Butchering tab shows what this world's carcasses give."),
+                text("Farmer's Delight knives make carcasses only while Butchery's \"Farmers Delight Knives Drop Carcasses\" option "
+                        + "is on, in Butchery 5.3; Butchery 5.2 treats them as cleavers. Butcher's Touch always works."));
         return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
     }
 

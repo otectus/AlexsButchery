@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:orca",
+  "groups": {
+    "meat": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:whale_meat",
+        "alexsmobsdelight:cooked_whale_meat"
+      ],
+      "item": "alexsmobsdelight:whale_meat"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

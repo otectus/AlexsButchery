@@ -242,6 +242,7 @@ public final class CarcassTargetingTests {
         switch (mob) {
             case "catfish" -> { add.accept(n -> n.putInt("CatfishSize", 1)); add.accept(n -> n.putInt("CatfishSize", 2)); }
             case "elephant" -> add.accept(n -> n.putBoolean("Tusked", true));
+            case "moose" -> add.accept(n -> n.putBoolean("Antlered", false));
             case "blobfish" -> add.accept(n -> n.putBoolean("Depressurized", true));
             case "bison" -> add.accept(n -> n.putInt("Age", -24000));
             case "gorilla" -> add.accept(n -> n.putBoolean("Silverback", true));

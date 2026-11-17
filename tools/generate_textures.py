@@ -46,12 +46,17 @@ def render_all():
 
 
 def render_rugs():
-    """The flat pelt of every rug: MobDefs.java's .rug("<skin>") calls, drawn from that skin's template and palette."""
+    """The flat pelt of every rug: MobDefs.java's .rug("<skin>") calls, drawn from that skin's template and palette,
+    and each .rugCoat("<tag>", "<pelt>") coat-variant pelt, drawn from the same skin's template."""
     skins = {item_id: (icon, palette) for item_id, icon, palette in item_defs()}
+    source = MOB_DEFS.read_text()
     rugs = {}
-    for i, skin in enumerate(re.findall(r'\.rug\("([a-z_]+)"\)', MOB_DEFS.read_text())):
+    for i, skin in enumerate(re.findall(r'\.rug\("([a-z_]+)"\)', source)):
         icon, palette = skins[skin]
         rugs[skin] = butchery_art.rug(icon, palette, salt=i * 29 + 7, skin_id=skin)
+    for i, (skin, pelt) in enumerate(re.findall(r'\.rug\("([a-z_]+)"\)\.rugCoat\("[A-Za-z]+", "([a-z_]+)"\)', source)):
+        icon, palette = skins[skin]
+        rugs[pelt] = butchery_art.rug(icon, palette, salt=i * 31 + 11, skin_id=pelt)
     return rugs
 
 

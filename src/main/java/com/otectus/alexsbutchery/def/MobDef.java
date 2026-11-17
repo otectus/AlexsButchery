@@ -6,8 +6,10 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -26,6 +28,8 @@ public final class MobDef {
     private final ResourceLocation entity;
     private final BloodClass blood;
     private final boolean hookable;
+    private final DeathSpawnMode deathSpawnMode;
+    private final boolean canBleedOnGround;
     private final SkinStep skin;
     private final boolean head;
     private final MountSize mount;
@@ -35,6 +39,8 @@ public final class MobDef {
     private final boolean skeleton;
     @Nullable
     private final String rug;
+    @Nullable
+    private final RugCoat rugCoat;
     private final Map<String, List<Drop>> drops;
     private final List<ResourceLocation> replacedDrops;
 
@@ -44,6 +50,8 @@ public final class MobDef {
         this.entity = b.entity;
         this.blood = b.blood;
         this.hookable = b.hookable;
+        this.deathSpawnMode = b.deathSpawnMode;
+        this.canBleedOnGround = b.canBleedOnGround;
         this.skin = b.skin;
         this.head = b.head;
         this.mount = b.mount;
@@ -52,6 +60,7 @@ public final class MobDef {
         this.bossTool = b.bossTool;
         this.skeleton = b.skeleton == null ? b.blood != BloodClass.NONE : b.skeleton;
         this.rug = b.rug;
+        this.rugCoat = b.rugCoat;
         this.drops = Collections.unmodifiableMap(new LinkedHashMap<>(b.drops));
         this.replacedDrops = List.copyOf(b.replacedDrops);
     }
@@ -61,6 +70,10 @@ public final class MobDef {
     public ResourceLocation entity() { return entity; }
     public BloodClass blood() { return blood; }
     public boolean hookable() { return hookable; }
+    /** Legacy/default representation at death, before the server policy applies its global and per-entity overrides. */
+    public DeathSpawnMode deathSpawnMode() { return deathSpawnMode; }
+    /** Legacy/default permission to drain a lying fresh carcass; server config may add more species. */
+    public boolean canBleedOnGround() { return canBleedOnGround; }
     public SkinStep skin() { return skin; }
     public boolean hasHead() { return head; }
     public MountSize mount() { return mount; }
@@ -72,16 +85,41 @@ public final class MobDef {
     /** The skin item (our id path) a pelt rug of this mob is crafted from, or null when it has no rug. */
     @Nullable public String rug() { return rug; }
     public boolean hasRug() { return rug != null; }
+    /** The rug's second pelt, for a coat the snapshot records (a white tiger), or null when the rug has one pelt. */
+    @Nullable public RugCoat rugCoat() { return rugCoat; }
     public Map<String, List<Drop>> drops() { return drops; }
     public List<ResourceLocation> replacedDrops() { return replacedDrops; }
+
+    /** The product groups this mob's stages yield, in stage order (see {@link Drop#group()}). */
+    public Set<String> groups() {
+        Set<String> groups = new LinkedHashSet<>();
+        for (List<Drop> stage : drops.values()) for (Drop drop : stage) if (drop.group() != null) groups.add(drop.group());
+        return groups;
+    }
+
+    /** The stages in which {@code group} has native drops, in stage order. */
+    public List<String> stagesOf(String group) {
+        List<String> stages = new ArrayList<>();
+        for (Map.Entry<String, List<Drop>> stage : drops.entrySet()) {
+            if (stage.getValue().stream().anyMatch(d -> group.equals(d.group()))) stages.add(stage.getKey());
+        }
+        return stages;
+    }
+
+    /** The native drops of {@code group} in one stage; empty when the stage has none. */
+    public List<Drop> groupDrops(String stage, String group) {
+        return drops.getOrDefault(stage, List.of()).stream().filter(d -> group.equals(d.group())).toList();
+    }
+
+    /** Internal loot table holding one group's native drops for one stage, rolled when no profile replaces them. */
+    public ResourceLocation nativeGroupTable(String stage, String group) {
+        return AlexsButchery.id("carcass_native/" + id + "/" + stage + "/" + group);
+    }
 
     /** Bleeding carcasses hang, drain and become a drained carcass; the rest are cut up on the fresh block. */
     public boolean bleeds() { return blood != BloodClass.NONE; }
     /** Butchery's small carcasses: small fill and drip procedures, {@code butchery:small_carcass}. */
     public boolean small() { return blood == BloodClass.SMALL; }
-    /** Placed in the world at death, never picked up onto a hook. */
-    public boolean floor() { return !hookable; }
-
     public ResourceLocation carcassId() { return AlexsButchery.id(id + "_carcass"); }
     public ResourceLocation drainedId() { return AlexsButchery.id("drained_" + id + "_carcass"); }
     public ResourceLocation headId() { return AlexsButchery.id(id + "_head"); }
@@ -96,6 +134,12 @@ public final class MobDef {
         return "MobDef[" + id + "]";
     }
 
+    /**
+     * A coat variant a rug shows: when the snapshot's boolean {@code tag} is true the rug lies with {@code pelt} (a rug
+     * texture under {@code textures/block/rug/}, drawn by {@code art/butchery_art.py}) instead of its skin's pelt.
+     */
+    public record RugCoat(String tag, String pelt) {}
+
     public static Builder builder(String id, String displayName) {
         return new Builder(id, displayName);
     }
@@ -106,6 +150,8 @@ public final class MobDef {
         private ResourceLocation entity;
         private BloodClass blood = BloodClass.REGULAR;
         private boolean hookable = true;
+        private DeathSpawnMode deathSpawnMode = DeathSpawnMode.ITEM;
+        private boolean canBleedOnGround;
         private SkinStep skin = SkinStep.SKIN;
         private boolean head = true;
         private MountSize mount = MountSize.REGULAR;
@@ -114,6 +160,7 @@ public final class MobDef {
         private boolean bossTool;
         private Boolean skeleton;
         private String rug;
+        private RugCoat rugCoat;
         private final Map<String, List<Drop>> drops = new LinkedHashMap<>();
         private final List<ResourceLocation> replacedDrops = new ArrayList<>();
 
@@ -126,7 +173,19 @@ public final class MobDef {
         public Builder entity(String entityId) { this.entity = new ResourceLocation(entityId); return this; }
         public Builder blood(BloodClass blood) { this.blood = blood; return this; }
         public Builder small() { this.blood = BloodClass.SMALL; this.mount = MountSize.SMALL; return this; }
-        public Builder floor() { this.hookable = false; this.blood = BloodClass.LARGE; this.weight = Weight.HEAVY; this.mount = MountSize.LARGE; return this; }
+        /**
+         * Legacy giant preset. Each capability is assigned explicitly so death representation is not inferred from
+         * hookability (or vice versa) by runtime policy.
+         */
+        public Builder floor() {
+            this.hookable = false;
+            this.deathSpawnMode = DeathSpawnMode.PLACED_BLOCK;
+            this.canBleedOnGround = true;
+            this.blood = BloodClass.LARGE;
+            this.weight = Weight.HEAVY;
+            this.mount = MountSize.LARGE;
+            return this;
+        }
         public Builder noBlood() { this.blood = BloodClass.NONE; this.skin = SkinStep.NONE; this.organs = false; return this; }
         public Builder skin(SkinStep skin) { this.skin = skin; return this; }
         public Builder pluck() { this.skin = SkinStep.PLUCK; return this; }
@@ -142,6 +201,8 @@ public final class MobDef {
         public Builder noSkeleton() { this.skeleton = false; return this; }
         /** A pelt rug crafted from three of this skin item (our id path) and the mob's head. */
         public Builder rug(String skinItem) { this.rug = skinItem; return this; }
+        /** The rug's pelt for the snapshot's boolean {@code tag} (see {@link RugCoat}). */
+        public Builder rugCoat(String tag, String pelt) { this.rugCoat = new RugCoat(tag, pelt); return this; }
 
         /** Drops of one stage: {@code head}, {@code skin}, {@code pluck}, {@code cut_1}, {@code cut_2}, {@code cut_3}. */
         public Builder drops(String stage, Drop... entries) {
@@ -162,6 +223,7 @@ public final class MobDef {
                 if (headDrops.stream().noneMatch(d -> d.item().equals(headItem))) headDrops.add(0, new Drop(headItem, 1, 1, 1F));
             }
             if (rug != null && !head) throw new IllegalStateException(id + ": a rug needs the mob's head");
+            if (rugCoat != null && rug == null) throw new IllegalStateException(id + ": a rug coat needs a rug");
             return new MobDef(this);
         }
     }

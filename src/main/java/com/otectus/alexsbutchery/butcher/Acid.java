@@ -20,6 +20,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -37,6 +38,15 @@ public final class Acid {
 
     public static boolean canDissolve(AbstractCarcassBlock block, BlockState state) {
         return block.def().hasSkeleton() && !(block instanceof SkeletonBlock) && block.stage(state) <= 1;
+    }
+
+    /**
+     * The one rule for every interaction with a carcass while acid works on it: nothing else may happen to it. Checked
+     * where a click arrives ({@code AbstractCarcassBlock#use}, on both sides, from the synced clock) and again where each
+     * process starts, so a stale client or a repeated packet cannot cut, bleed or pour into a dissolving carcass.
+     */
+    public static boolean dissolving(BlockGetter level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof CarcassBlockEntity carcass && carcass.isDissolving();
     }
 
     public static InteractionResult pour(Level level, BlockPos pos, BlockState state, AbstractCarcassBlock block, Player player, InteractionHand hand) {
@@ -72,8 +82,10 @@ public final class Acid {
         level.sendParticles(ParticleTypes.BUBBLE_POP, pos.getX() + dx, pos.getY() + dy, pos.getZ() + dx, 20, 0.1, 0.1, 0.1, 0.1);
     }
 
+    /** Only the carcass the acid was poured on, still whole and still this block entity, becomes the skeleton. */
     private static void dissolve(Level level, BlockPos pos, BlockState state, CarcassBlockEntity carcass) {
-        if (!(state.getBlock() instanceof AbstractCarcassBlock block)) return;
+        if (!(state.getBlock() instanceof AbstractCarcassBlock block) || level.getBlockEntity(pos) != carcass
+                || level.getBlockState(pos) != state || !canDissolve(block, state)) return;
         MobDef def = block.def();
         RegistryObject<SkeletonBlock> skeleton = ModBlocks.of(def).skeleton();
         if (skeleton == null) return;

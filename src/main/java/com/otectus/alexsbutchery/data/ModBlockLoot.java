@@ -1,7 +1,9 @@
 package com.otectus.alexsbutchery.data;
 
 import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
+import com.otectus.alexsbutchery.block.SkinRackBlock;
 import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
+import com.otectus.alexsbutchery.butcher.PortableCarcass;
 import com.otectus.alexsbutchery.compat.ButcheryHooks;
 import com.otectus.alexsbutchery.registry.ModBlocks;
 import net.minecraft.advancements.critereon.StatePropertiesPredicate;
@@ -24,11 +26,12 @@ import java.util.Set;
 
 /**
  * What breaking a mob block drops. A whole carcass (Butchery states 0 and 1) comes back as its item with the mob
- * snapshot; a carcass mid-butchering is worth only meat scraps, like Butchery's. Heads, mounts and skeletons drop
- * themselves with the snapshot, rugs drop themselves.
+ * snapshot and whatever bleeding or acid is under way, which resumes where it is put down again; a carcass mid-butchering
+ * is worth only meat scraps, like Butchery's. Heads, mounts, skeletons and rugs drop themselves with the snapshot and
+ * nothing else. The skin rack's table drops Butchery's rack; its skin or leather drops as the rack's contents
+ * ({@link SkinRackBlock#getDrops}).
  */
 final class ModBlockLoot extends BlockLootSubProvider {
-
     ModBlockLoot() {
         super(Set.of(), FeatureFlags.REGISTRY.allFlags());
     }
@@ -39,19 +42,23 @@ final class ModBlockLoot extends BlockLootSubProvider {
             AbstractCarcassBlock carcass = e.carcass().get();
             add(carcass, wholeOrScraps(carcass, carcass.asItem()));
             if (e.drained() != null) add(e.drained().get(), wholeOrScraps(e.drained().get(), e.drained().get().asItem()));
-            if (e.head() != null) add(e.head().get(), withMobData(e.head().get(), e.head().get().asItem()));
-            if (e.mount() != null) add(e.mount().get(), withMobData(e.mount().get(), e.mount().get().asItem()));
-            if (e.skeleton() != null) add(e.skeleton().get(), withMobData(e.skeleton().get(), e.skeleton().get().asItem()));
-            if (e.rug() != null) dropSelf(e.rug().get());
+            if (e.head() != null) add(e.head().get(), withMobData(e.head().get().asItem()));
+            if (e.mount() != null) add(e.mount().get(), withMobData(e.mount().get().asItem()));
+            if (e.skeleton() != null) add(e.skeleton().get(), withMobData(e.skeleton().get().asItem()));
+            if (e.rug() != null) add(e.rug().get(), withMobData(e.rug().get().asItem()));
         }
-        add(ModBlocks.SKIN_RACK.get(), noDrop());
+        Block rack = ModBlocks.SKIN_RACK.get();
+        // The skin or leather on it is the rack's contents, dropped by SkinRackBlock itself; only the rack is loot.
+        add(rack, LootTable.lootTable()
+                .withPool(applyExplosionCondition(ButcheryHooks.skinRack(), LootPool.lootPool().setRolls(ConstantValue.exactly(1))
+                        .add(LootItem.lootTableItem(ButcheryHooks.skinRack())))));
     }
 
     private static LootTable.Builder wholeOrScraps(AbstractCarcassBlock block, ItemLike item) {
-        LootPoolEntryContainer.Builder<?> whole0 = LootItem.lootTableItem(item).apply(copyMobData())
+        LootPoolEntryContainer.Builder<?> whole0 = LootItem.lootTableItem(item).apply(copyMobDataAndProcess())
                 .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
                         .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(block.stateProperty(), 0)));
-        LootPoolEntryContainer.Builder<?> whole1 = LootItem.lootTableItem(item).apply(copyMobData())
+        LootPoolEntryContainer.Builder<?> whole1 = LootItem.lootTableItem(item).apply(copyMobDataAndProcess())
                 .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
                         .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(block.stateProperty(), 1)));
         LootPoolEntryContainer.Builder<?> scraps = LootItem.lootTableItem(ButcheryHooks.meatScraps());
@@ -59,14 +66,21 @@ final class ModBlockLoot extends BlockLootSubProvider {
                 .add(AlternativesEntry.alternatives(whole0, whole1, scraps)));
     }
 
-    private static LootTable.Builder withMobData(Block block, ItemLike item) {
+    private static LootTable.Builder withMobData(ItemLike item) {
         return LootTable.lootTable().withPool(LootPool.lootPool().setRolls(ConstantValue.exactly(1))
                 .add(LootItem.lootTableItem(item).apply(copyMobData())));
     }
 
-    private static CopyNbtFunction.Builder copyMobData() {
+    /** The appearance only: {@code MobData}, nothing else of the block entity. */
+    static CopyNbtFunction.Builder copyMobData() {
         return CopyNbtFunction.copyData(ContextNbtProvider.BLOCK_ENTITY)
                 .copy(CarcassBlockEntity.MOB_DATA, "BlockEntityTag." + CarcassBlockEntity.MOB_DATA);
+    }
+
+    private static CopyNbtFunction.Builder copyMobDataAndProcess() {
+        CopyNbtFunction.Builder copy = copyMobData();
+        for (String field : PortableCarcass.PROCESS_FIELDS) copy.copy(field, "BlockEntityTag." + field);
+        return copy;
     }
 
     @Override

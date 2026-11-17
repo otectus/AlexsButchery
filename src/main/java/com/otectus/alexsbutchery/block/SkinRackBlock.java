@@ -32,11 +32,16 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Butchery's skin rack while one of our skins is on it. Butchery's rack knows only its own skins by block state,
@@ -49,6 +54,7 @@ public class SkinRackBlock extends Block implements EntityBlock {
     public static final int STAGE_SALTED = 1;
     public static final int STAGE_CURING = 2;
     public static final int STAGE_DONE = 3;
+    /** The rack's contents in its loot table ({@code minecraft:dynamic}, {@code alexsbutchery:contents}). */
     /** Butchery's "Leather Late Than Never": the curing takes one minute thirty. */
     public static final int CURE_TICKS = 1800;
     private static final VoxelShape NS = Shapes.or(Block.box(0, 0, 1, 16, 5, 15), Block.box(0, 5, 3, 16, 10, 13), Block.box(0, 10, 5, 16, 15, 11));
@@ -158,14 +164,38 @@ public class SkinRackBlock extends Block implements EntityBlock {
         level.setBlock(pos, rack, Block.UPDATE_ALL);
     }
 
+    /**
+     * What the rack holds if it is destroyed now: the leather once cured, before that the skin itself (the salt and
+     * sponge already used are spent). Empty without a skin.
+     */
+    public static ItemStack contents(SkinRackBlockEntity rack) {
+        if (rack.stage() == STAGE_DONE) return new ItemStack(Items.LEATHER);
+        return rack.skin().copy();
+    }
+
+    /**
+     * Every destruction that drops anything (a survival player, {@code destroyBlock} with drops, an explosion) gives
+     * Butchery's rack from the block's loot table and what the rack holds, as a container's contents: outside the loot
+     * table, so a global loot modifier never turns the leather on the rack into something its owner could not have taken
+     * off by hand (Immersive Tanning's Binding Leather, for one). Taking the leather or the raw skin off swaps the block
+     * without dropping anything, so nothing is paid twice.
+     */
+    @Override
+    public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+        List<ItemStack> drops = new ArrayList<>(super.getDrops(state, params));
+        if (params.getOptionalParameter(LootContextParams.BLOCK_ENTITY) instanceof SkinRackBlockEntity rack) {
+            ItemStack contents = contents(rack);
+            if (!contents.isEmpty()) drops.add(contents);
+        }
+        return drops;
+    }
+
+    /** A creative player's break rolls no loot: the skin or leather still drops, the rack does not. */
     @Override
     public void playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
-        if (!level.isClientSide && level.getBlockEntity(pos) instanceof SkinRackBlockEntity rack) {
-            ItemStack contents = rack.stage() == STAGE_DONE ? new ItemStack(Items.LEATHER) : rack.skin().copy();
-            Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, contents);
-            if (!player.getAbilities().instabuild) {
-                Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, new ItemStack(ButcheryHooks.skinRack()));
-            }
+        if (!level.isClientSide && player.getAbilities().instabuild && level.getBlockEntity(pos) instanceof SkinRackBlockEntity rack) {
+            ItemStack contents = contents(rack);
+            if (!contents.isEmpty()) Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, contents);
         }
         super.playerWillDestroy(level, pos, state, player);
     }

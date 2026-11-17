@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:devils_hole_pupfish",
+  "groups": {
+    "fish": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:raw_devils_hole_pupfish",
+        "alexsmobsdelight:cooked_devils_hole_pupfish"
+      ],
+      "item": "alexsmobsdelight:raw_devils_hole_pupfish"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

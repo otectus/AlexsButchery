@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:mimic_octopus",
+  "groups": {
+    "tentacles": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:mimic_octopus_tentacle",
+        "alexsmobsdelight:cooked_octopus_tentacle"
+      ],
+      "item": "alexsmobsdelight:mimic_octopus_tentacle"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

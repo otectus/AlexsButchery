@@ -315,12 +315,14 @@ def rug(icon, palette, salt, skin_id):
     px = im.load()
     bison = skin_id == 'bison_hide'
     bear = skin_id == 'grizzly_pelt'
-    tiger = skin_id == 'tiger_pelt'
+    tiger = skin_id in ('tiger_pelt', 'white_tiger_pelt')
     leopard = skin_id == 'snow_leopard_pelt'
     ramps = {
         'bison_hide': ['#201a17', '#302620', '#45352a', '#594333', '#6c503b'],
         'grizzly_pelt': ['#30231b', '#493226', '#604330', '#76533b', '#896346'],
         'tiger_pelt': ['#623a20', '#a75b22', '#c77a2b', '#de953e', '#e8ac55'],
+        # Alex's Mobs' white tiger: cream-white fur with near-black stripes (MobDefs rugCoat "White").
+        'white_tiger_pelt': ['#8c8780', '#c3bdb3', '#d8d3c9', '#e8e4dc', '#f4f1ea'],
         'snow_leopard_pelt': ['#64635c', '#929087', '#b8b5aa', '#d0ccc0', '#e0dbce'],
     }
     ramp = [hexrgb(c) for c in ramps[skin_id]]
@@ -342,7 +344,7 @@ def rug(icon, palette, salt, skin_id):
     marks = Image.new('RGBA', (32, 32))
     m = ImageDraw.Draw(marks)
     if tiger:
-        dark = '#30251c'
+        dark = '#26221f' if skin_id == 'white_tiger_pelt' else '#30251c'
         # Tapered, offset flank stripes: broad at the edge, narrow toward the spine.
         for y, tip in ((7, 14), (12, 15), (17, 14), (22, 15)):
             m.polygon([(8, y), (11, y), (tip, y + 2), (11, y + 2), (8, y + 1)], fill=dark)

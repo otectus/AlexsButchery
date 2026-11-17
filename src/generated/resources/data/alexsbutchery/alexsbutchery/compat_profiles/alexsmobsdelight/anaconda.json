@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:anaconda",
+  "groups": {
+    "meat": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:raw_anaconda",
+        "alexsmobsdelight:cooked_anaconda"
+      ],
+      "item": "alexsmobsdelight:raw_anaconda"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

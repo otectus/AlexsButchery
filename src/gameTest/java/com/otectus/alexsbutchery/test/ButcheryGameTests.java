@@ -6,6 +6,7 @@ import com.otectus.alexsbutchery.block.SkinRackBlock;
 import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
 import com.otectus.alexsbutchery.block.entity.SkinRackBlockEntity;
 import com.otectus.alexsbutchery.butcher.Acid;
+import com.otectus.alexsbutchery.def.BloodClass;
 import com.otectus.alexsbutchery.def.MobDefs;
 import com.otectus.alexsbutchery.registry.ModBlocks;
 import com.otectus.alexsbutchery.registry.ModItems;
@@ -24,6 +25,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -122,15 +124,25 @@ public final class ButcheryGameTests {
                 .setValue(AbstractCarcassBlock.BLOCKSTATE_FRESH, 1));
         use(h, carcassPos, player);
         h.assertTrue(h.getBlockEntity(carcassPos) instanceof CarcassBlockEntity c && c.isBleeding(), "cleaver starts the bleeding");
-        h.runAfterDelay(950, () -> {
-            BlockState state = h.getBlockState(carcassPos);
-            h.assertTrue(state.is(ModBlocks.of(MobDefs.byId("kangaroo")).drained().get()), "fresh carcass became the drained carcass");
-            h.assertTrue(state.getValue(AbstractCarcassBlock.BLOCKSTATE_STAGED) == 1, "drained carcass still hangs (blockstate 1)");
-            int amount = h.getBlockEntity(ORIGIN).getCapability(ForgeCapabilities.FLUID_HANDLER)
-                    .map(handler -> handler.getFluidInTank(0).getAmount()).orElse(-1);
-            h.assertTrue(amount == 1000, "grate holds 1000 mB of blood, got " + amount);
-            h.succeed();
+        // Waited for, not timed from the test's start: a block entity only ticks once its chunk is block-ticking, which a
+        // freshly loaded test area can reach some ticks after the test's own clock started. The carcass's bleed clock
+        // still has to run its whole course (20 fills of 45 ticks) before it drains.
+        int[] clock = {0};
+        h.onEachTick(() -> {
+            if (h.getBlockEntity(carcassPos) instanceof CarcassBlockEntity c && c.isBleeding()) clock[0] = c.bleedTicks();
         });
+        Block drained = ModBlocks.of(MobDefs.byId("kangaroo")).drained().get();
+        h.startSequence()
+                .thenWaitUntil(() -> h.assertTrue(h.getBlockState(carcassPos).is(drained), "fresh carcass became the drained carcass, now "
+                        + h.getBlockState(carcassPos) + ", bleed clock " + clock[0]))
+                .thenExecute(() -> {
+                    h.assertTrue(clock[0] >= BloodClass.REGULAR.totalTicks() - 1, "it drained only after its whole bleed, clock " + clock[0]);
+                    h.assertTrue(h.getBlockState(carcassPos).getValue(AbstractCarcassBlock.BLOCKSTATE_STAGED) == 1, "drained carcass still hangs (blockstate 1)");
+                    int amount = h.getBlockEntity(ORIGIN).getCapability(ForgeCapabilities.FLUID_HANDLER)
+                            .map(handler -> handler.getFluidInTank(0).getAmount()).orElse(-1);
+                    h.assertTrue(amount == 1000, "grate holds 1000 mB of blood, got " + amount);
+                })
+                .thenSucceed();
     }
 
     @GameTest(template = "empty")
@@ -249,14 +261,22 @@ public final class ButcheryGameTests {
         h.assertTrue(acid.isEmpty(), "the acid bottle was used up");
         h.assertTrue(player.getInventory().contains(new ItemStack(Items.GLASS_BOTTLE)), "the empty bottle comes back");
         h.assertTrue(advancementDone(h, player, AlexsButchery.id("bare_bones")), "pouring acid grants Bare Bones");
-        h.runAfterDelay(Acid.DISSOLVE_TICKS + 5, () -> {
-            BlockState state = h.getBlockState(pos);
-            h.assertTrue(state.is(ModBlocks.of(def).skeleton().get()), "the carcass became the kangaroo skeleton");
-            h.assertTrue(state.getValue(AbstractCarcassBlock.BLOCKSTATE_FRESH) == 1, "the skeleton still hangs");
-            h.assertTrue(state.getValue(AbstractCarcassBlock.FACING) == Direction.EAST, "the skeleton keeps the carcass's facing");
-            h.assertTrue(((CarcassBlockEntity) h.getBlockEntity(pos)).mobData().getInt("Variant") == 1, "the skeleton keeps the mob snapshot");
-            h.succeed();
+        // Waited for (see hangingCarcassBleedsIntoGrateAndDrains): the acid clock must still run out before the skeleton.
+        int[] acidLeft = {Acid.DISSOLVE_TICKS};
+        h.onEachTick(() -> {
+            if (h.getBlockEntity(pos) instanceof CarcassBlockEntity c && c.isDissolving()) acidLeft[0] = c.acidTicks();
         });
+        h.startSequence()
+                .thenWaitUntil(() -> h.assertTrue(h.getBlockState(pos).is(ModBlocks.of(def).skeleton().get()), "the carcass became the kangaroo skeleton, now "
+                        + h.getBlockState(pos) + ", acid clock " + acidLeft[0]))
+                .thenExecute(() -> {
+                    BlockState state = h.getBlockState(pos);
+                    h.assertTrue(acidLeft[0] <= 1, "it dissolved only when the acid ran out, clock " + acidLeft[0]);
+                    h.assertTrue(state.getValue(AbstractCarcassBlock.BLOCKSTATE_FRESH) == 1, "the skeleton still hangs");
+                    h.assertTrue(state.getValue(AbstractCarcassBlock.FACING) == Direction.EAST, "the skeleton keeps the carcass's facing");
+                    h.assertTrue(((CarcassBlockEntity) h.getBlockEntity(pos)).mobData().getInt("Variant") == 1, "the skeleton keeps the mob snapshot");
+                })
+                .thenSucceed();
     }
 
     @GameTest(template = "empty")
@@ -393,13 +413,15 @@ public final class ButcheryGameTests {
         use(h, ORIGIN, player);
         h.assertTrue(((SkinRackBlockEntity) h.getBlockEntity(ORIGIN)).stage() == SkinRackBlock.STAGE_CURING, "wet sponge -> curing");
         h.assertTrue(sponge.getOrCreateTag().getDouble("spongeWetness") == 1.0, "the sponge lost one use");
-        h.runAfterDelay(SkinRackBlock.CURE_TICKS + 10, () -> {
-            h.assertTrue(((SkinRackBlockEntity) h.getBlockEntity(ORIGIN)).stage() == SkinRackBlock.STAGE_DONE, "cured after 90 seconds");
-            player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
-            use(h, ORIGIN, player);
-            h.assertTrue(count(h, Items.LEATHER) == 1, "one leather");
-            h.assertTrue(h.getBlockState(ORIGIN).is(butcheryBlock("skin_rack")), "Butchery's empty rack is back");
-            h.succeed();
-        });
+        // Waited for (see hangingCarcassBleedsIntoGrateAndDrains): cured once the rack's own 90-second clock has run.
+        h.startSequence()
+                .thenWaitUntil(() -> h.assertTrue(((SkinRackBlockEntity) h.getBlockEntity(ORIGIN)).stage() == SkinRackBlock.STAGE_DONE, "cured after 90 seconds"))
+                .thenExecute(() -> {
+                    player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+                    use(h, ORIGIN, player);
+                    h.assertTrue(count(h, Items.LEATHER) == 1, "one leather");
+                    h.assertTrue(h.getBlockState(ORIGIN).is(butcheryBlock("skin_rack")), "Butchery's empty rack is back");
+                })
+                .thenSucceed();
     }
 }

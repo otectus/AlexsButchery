@@ -2,6 +2,7 @@ package com.otectus.alexsbutchery.registry;
 
 import com.otectus.alexsbutchery.AlexsButchery;
 import com.otectus.alexsbutchery.def.ItemDefs;
+import com.otectus.alexsbutchery.def.DeathSpawnMode;
 import com.otectus.alexsbutchery.def.MobDef;
 import com.otectus.alexsbutchery.item.MobBlockItem;
 import net.minecraft.world.food.FoodProperties;
@@ -50,15 +51,15 @@ public final class ModItems {
         for (ModBlocks.Entries blocks : ModBlocks.all()) {
             MobDef def = blocks.def();
             RegistryObject<Item> carcass = ITEMS.register(def.carcassId().getPath(),
-                    () -> new MobBlockItem(blocks.carcass().get(), new Item.Properties().stacksTo(def.floor() ? 1 : 8)));
+                    () -> new MobBlockItem(blocks.carcass().get(), new Item.Properties().stacksTo(def.deathSpawnMode() == DeathSpawnMode.PLACED_BLOCK ? 1 : 8)));
             RegistryObject<Item> drained = blocks.drained() == null ? null : ITEMS.register(def.drainedId().getPath(),
-                    () -> new MobBlockItem(blocks.drained().get(), new Item.Properties().stacksTo(def.floor() ? 1 : 8)));
+                    () -> new MobBlockItem(blocks.drained().get(), new Item.Properties().stacksTo(def.deathSpawnMode() == DeathSpawnMode.PLACED_BLOCK ? 1 : 8)));
             RegistryObject<Item> head = blocks.head() == null ? null : ITEMS.register(def.headId().getPath(),
                     () -> new MobBlockItem(blocks.head().get(), new Item.Properties()));
             RegistryObject<Item> mount = blocks.mount() == null ? null : ITEMS.register(def.mountId().getPath(),
                     () -> new MobBlockItem(blocks.mount().get(), new Item.Properties()));
             RegistryObject<Item> skeleton = blocks.skeleton() == null ? null : ITEMS.register(def.skeletonId().getPath(),
-                    () -> new MobBlockItem(blocks.skeleton().get(), new Item.Properties().stacksTo(def.floor() ? 1 : 16)));
+                    () -> new MobBlockItem(blocks.skeleton().get(), new Item.Properties().stacksTo(def.deathSpawnMode() == DeathSpawnMode.PLACED_BLOCK ? 1 : 16)));
             // The rug's pelt is a block model, so its item is a plain block item with a flat icon.
             RegistryObject<Item> rug = blocks.rug() == null ? null : ITEMS.register(def.rugId().getPath(),
                     () -> new BlockItem(blocks.rug().get(), new Item.Properties()));

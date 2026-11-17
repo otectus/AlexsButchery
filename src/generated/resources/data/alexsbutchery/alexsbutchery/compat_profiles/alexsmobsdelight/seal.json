@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:seal",
+  "groups": {
+    "meat": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:seal_meat",
+        "alexsmobsdelight:cooked_seal_meat"
+      ],
+      "item": "alexsmobsdelight:seal_meat"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

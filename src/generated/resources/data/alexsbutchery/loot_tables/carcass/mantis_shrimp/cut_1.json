@@ -5,19 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 2.0,
-                "min": 1.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsbutchery:raw_mantis_shrimp_tail"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:mantis_shrimp",
+          "fallback": "alexsbutchery:carcass_native/mantis_shrimp/cut_1/tail",
+          "group": "tail",
+          "stage": "cut_1"
         }
       ],
       "rolls": 1.0

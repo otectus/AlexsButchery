@@ -7,11 +7,10 @@ import net.mcreator.butchery.init.ButcheryModEnchantments;
 import net.mcreator.butchery.init.ButcheryModItems;
 import net.mcreator.butchery.procedures.BlooddrippingProcedure;
 import net.mcreator.butchery.procedures.FillbloodgrateProcedure;
-import net.mcreator.butchery.procedures.InstantfillbloodgrateProcedure;
 import net.mcreator.butchery.procedures.PlacebloodpuddleProcedure;
-import net.mcreator.butchery.procedures.SmallInstantfillbloodgrateProcedure;
 import net.mcreator.butchery.procedures.SmallblooddrippingProcedure;
 import net.mcreator.butchery.procedures.SmallfillbloodgrateProcedure;
+import net.mcreator.butchery.procedures.TaxidermytableOnTickUpdateProcedure;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.core.BlockPos;
@@ -75,6 +74,54 @@ public final class ButcheryHooks {
 
     /** Logs which Farmer's Delight knife rule applies, at load rather than on the first kill. */
     public static void resolveOptionalConfig() { FarmersDelightKnives.allowed(); }
+
+    /**
+     * Whether {@code mixin/TaxidermyResultMixin} found its seam in this Butchery's taxidermy procedure: its handler is
+     * merged into the procedure class. Without it, mounted heads keep the default look; said once, at load.
+     */
+    public static boolean taxidermyBridged() {
+        for (java.lang.reflect.Method method : TaxidermytableOnTickUpdateProcedure.class.getDeclaredMethods()) {
+            if (method.getName().endsWith("keepHeadAppearance")) return true;
+        }
+        return false;
+    }
+
+    public static void verifyTaxidermyBridge() {
+        if (!taxidermyBridged()) AlexsButchery.LOGGER.error("This Butchery's taxidermy table has no result write Alex's Butchery recognises; "
+                + "head mounts made there will show the default look instead of the mounted head's");
+    }
+
+    /**
+     * Butchery 5.3's {@code "Skin Drying Time"} ({@code ButcheryconfigConfiguration.SKIN_DRYING_TIME}, in ticks): its skin
+     * rack counts a persistent {@code Timer} up to it. Butchery 5.2 has neither (its rack cures on unsaved queued work), so
+     * this is -1 there, read reflectively so this mod still links against 5.2.
+     */
+    public static double skinDryingTime() {
+        return SkinDrying.ticks();
+    }
+
+    private static final class SkinDrying {
+        @Nullable private static final ForgeConfigSpec.ConfigValue<?> OPTION;
+
+        static {
+            Object value = null;
+            try {
+                value = ButcheryconfigConfiguration.class.getField("SKIN_DRYING_TIME").get(null);
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                // Butchery 5.2: no drying time to show.
+            }
+            OPTION = value instanceof ForgeConfigSpec.ConfigValue<?> option ? option : null;
+        }
+
+        static double ticks() {
+            if (OPTION == null) return -1;
+            try {
+                return OPTION.get() instanceof Number n ? n.doubleValue() : -1;
+            } catch (IllegalStateException e) {
+                return -1;
+            }
+        }
+    }
 
     // --- tools --------------------------------------------------------------------------------------------------
 
@@ -175,16 +222,14 @@ public final class ButcheryHooks {
 
     // --- shared procedures --------------------------------------------------------------------------------------
 
-    /** One 50 mB fill of the first blood grate up to 16 blocks below the carcass. */
+    /**
+     * One 50 mB fill of the first open blood grate below the carcass (16 blocks deep, 5 for small carcasses), with
+     * Butchery's grate rules and capacity. The same in Butchery 5.2 and 5.3, unlike its instant-fill procedures (5.2: 1000
+     * mB, 5.3: 50 mB), which this mod therefore never calls: instant bleeding repeats this fill for the blood still owed.
+     */
     public static void fillGrate(LevelAccessor level, BlockPos pos, boolean small) {
         if (small) SmallfillbloodgrateProcedure.execute(level, pos.getX(), pos.getY(), pos.getZ());
         else FillbloodgrateProcedure.execute(level, pos.getX(), pos.getY(), pos.getZ());
-    }
-
-    /** The whole carcass's blood at once (Butchery's "Instant Bleeding" option). */
-    public static void instantFill(LevelAccessor level, BlockPos pos, boolean small) {
-        if (small) SmallInstantfillbloodgrateProcedure.execute(level, pos.getX(), pos.getY(), pos.getZ());
-        else InstantfillbloodgrateProcedure.execute(level, pos.getX(), pos.getY(), pos.getZ());
     }
 
     /** Blood particles under a hanging carcass (needs the block tagged {@code butchery:carcass} or {@code carcass_no_states}). */

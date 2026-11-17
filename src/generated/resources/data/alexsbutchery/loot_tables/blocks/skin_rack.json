@@ -1,4 +1,21 @@
 {
   "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        {
+          "condition": "minecraft:survives_explosion"
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "butchery:skin_rack"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
   "random_sequence": "alexsbutchery:blocks/skin_rack"
 }

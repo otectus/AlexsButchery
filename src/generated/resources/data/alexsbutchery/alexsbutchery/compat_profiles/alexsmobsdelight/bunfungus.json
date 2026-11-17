@@ -1,0 +1,26 @@
+{
+  "entity": "alexsmobs:bunfungus",
+  "groups": {
+    "meat": {
+      "count_mode": "per_stage",
+      "counts": {
+        "cut_1": 1,
+        "cut_2": 1,
+        "cut_3": {
+          "max": 1,
+          "min": 0
+        }
+      },
+      "death_equivalents": [
+        "alexsmobsdelight:raw_bunfungus_leg",
+        "alexsmobsdelight:cooked_bunfungus_leg"
+      ],
+      "item": "alexsmobsdelight:raw_bunfungus_leg"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

@@ -1,0 +1,29 @@
+{
+  "category": "butchery:alexsbutchery",
+  "icon": "alexsbutchery:raw_bear_meat",
+  "name": "Cooking Addons",
+  "pages": [
+    {
+      "type": "patchouli:text",
+      "text": "Two different addons cook Alex's Mobs creatures with Farmer's Delight: $(l)Alex's Mobs Delight$() and $(l)Alex's Delight$(). With either installed, a carcass gives the addon's own meat for each creature it covers, ready for its cutting board, cooking pot and meals. Hides, fur, fat, hooves, bones, heads and organs stay the same."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A grizzly bear gives Alex's Mobs Delight bear meat, a crocodile its crocodile meat and a bison its bison meat, or Alex's Delight raw bison when only that addon is installed. With both, Alex's Mobs Delight comes first; the server's config can change that. Without either, carcasses give this mod's own meats and Butchery's steaks."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "A creature killed for its carcass does not also drop its ordinary meat: the carcass stands for it, even burnt. Claws, tails, ears, hats and other special parts still drop. A mantis shrimp's tail matches its colour."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Older bear, seal, whale, tusklin and froststalker meat and turtle shells can be crafted into the addon's own, bunfungus meat into Alex's Delight's. Reptile meat, game bird and Butchery's steaks cannot: they could have come from several creatures. JEI's Butchering tab shows what this world's carcasses give."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Farmer's Delight knives make carcasses only while Butchery's \"Farmers Delight Knives Drop Carcasses\" option is on, in Butchery 5.3; Butchery 5.2 treats them as cleavers. Butcher's Touch always works."
+    }
+  ],
+  "read_by_default": true,
+  "sortnum": 10
+}

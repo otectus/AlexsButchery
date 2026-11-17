@@ -11,7 +11,7 @@
     },
     {
       "type": "patchouli:text",
-      "text": "With Alex's Mobs Delight installed, the carcasses yield that mod's bear, emu, seal, whale and other meats instead of ours, so there is only one of each."
+      "text": "With a cooking addon installed, Alex's Mobs Delight or Alex's Delight, carcasses give that addon's own meat for the creatures it covers instead of ours, ready for its recipes. See $(l:butchery:alexsbutchery/cooking_addons)Cooking Addons$()."
     }
   ],
   "read_by_default": true,

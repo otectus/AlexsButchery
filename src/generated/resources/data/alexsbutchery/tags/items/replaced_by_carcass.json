@@ -41,6 +41,14 @@
       "required": false
     },
     {
+      "id": "minecraft:porkchop",
+      "required": false
+    },
+    {
+      "id": "minecraft:red_mushroom",
+      "required": false
+    },
+    {
       "id": "alexsmobs:straddlite",
       "required": false
     },
@@ -57,7 +65,23 @@
       "required": false
     },
     {
+      "id": "alexsmobs:emu_feather",
+      "required": false
+    },
+    {
+      "id": "minecraft:feather",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:roadrunner_feather",
+      "required": false
+    },
+    {
       "id": "alexsmobs:soul_heart",
+      "required": false
+    },
+    {
+      "id": "minecraft:bone",
       "required": false
     },
     {
@@ -82,6 +106,10 @@
     },
     {
       "id": "alexsmobs:lost_tentacle",
+      "required": false
+    },
+    {
+      "id": "minecraft:ink_sac",
       "required": false
     },
     {
@@ -114,6 +142,10 @@
     },
     {
       "id": "alexsmobs:cockroach_wing",
+      "required": false
+    },
+    {
+      "id": "alexsmobs:maggot",
       "required": false
     },
     {

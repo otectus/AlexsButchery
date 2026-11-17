@@ -1,0 +1,10 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.otectus.alexsbutchery.client.compat.carryon.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "alexsbutchery.refmap.json",
+  "plugin": "com.otectus.alexsbutchery.mixin.compat.CarryOnMixinPlugin",
+  "client": ["CarryOnDataAccessor", "CarriedObjectRenderMixin"],
+  "injectors": {"defaultRequire": 1}
+}

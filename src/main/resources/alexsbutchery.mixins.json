@@ -4,6 +4,6 @@
   "package": "com.otectus.alexsbutchery.mixin",
   "compatibilityLevel": "JAVA_17",
   "refmap": "alexsbutchery.refmap.json",
-  "mixins": ["ServerCarcassUseMixin", "ServerCarcassBreakMixin"],
+  "mixins": ["ServerCarcassUseMixin", "ServerCarcassBreakMixin", "TaxidermyResultMixin"],
   "injectors": {"defaultRequire": 1}
 }

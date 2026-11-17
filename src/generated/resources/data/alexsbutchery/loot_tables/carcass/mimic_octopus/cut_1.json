@@ -5,19 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 2.0,
-                "min": 1.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "butchery:tentacles"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:mimic_octopus",
+          "fallback": "alexsbutchery:carcass_native/mimic_octopus/cut_1/tentacles",
+          "group": "tentacles",
+          "stage": "cut_1"
         }
       ],
       "rolls": 1.0

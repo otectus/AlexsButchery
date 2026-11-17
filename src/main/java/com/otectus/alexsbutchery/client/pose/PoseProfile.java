@@ -60,6 +60,9 @@ public final class PoseProfile {
     @org.jetbrains.annotations.Nullable
     public SegmentChain segments;
 
+    public java.util.Map<String, PresentationProfile> presentation = java.util.Map.of();
+    public String presentationError;
+
     public boolean isHead(String part) {
         return head.isEmpty() ? HEAD_HEURISTIC.test(part) : head.contains(part);
     }
@@ -140,6 +143,10 @@ public final class PoseProfile {
             p.rugHeadScale = GsonHelper.getAsFloat(rug, "scale", p.rugHeadScale);
         }
         if (json.has("segments")) p.segments = SegmentChain.fromJson(GsonHelper.getAsJsonObject(json, "segments"));
+        if (json.has("presentation")) {
+            try { p.presentation = PresentationProfile.parse(json.getAsJsonObject("presentation")); }
+            catch (RuntimeException e) { p.presentationError = e.getMessage(); }
+        }
         p.alwaysHidden = names(json, "hide");
         p.head = names(json, "head");
         p.cut1 = names(json, "cut_1");

@@ -9,7 +9,6 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.geom.ModelPart;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3f;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -217,22 +216,26 @@ public final class ModelParts {
 
     /** Solid anatomy for seating a rug head: a beard/whisker plane must not hold the skull in the air. */
     public static void solidBounds(AdvancedModelBox box, PoseStack pose, ModelBounds mesh) {
+        solidBounds(box, pose, mesh, true, false);
+    }
+
+    /** Donor head roots author the skull/neck first; later cubes can be solid antlers (notably moose). */
+    public static void skullBounds(AdvancedModelBox box, PoseStack pose, ModelBounds mesh) {
+        solidBounds(box, pose, mesh, false, true);
+    }
+
+    private static void solidBounds(AdvancedModelBox box, PoseStack pose, ModelBounds mesh, boolean children, boolean firstSolid) {
         if (!box.showModel) return;
         pose.pushPose();
         try {
             box.translateAndRotate(pose);
             for (var cube : box.cubeList) {
                 if (cube.posX1 == cube.posX2 || cube.posY1 == cube.posY2 || cube.posZ1 == cube.posZ2) continue;
-                for (int i = 0; i < 8; i++) {
-                    Vector3f v = pose.last().pose().transformPosition(new Vector3f(
-                            (i % 2 == 0 ? cube.posX1 : cube.posX2) / 16F,
-                            ((i & 2) == 0 ? cube.posY1 : cube.posY2) / 16F,
-                            ((i & 4) == 0 ? cube.posZ1 : cube.posZ2) / 16F));
-                    mesh.vertex(v.x, v.y, v.z);
-                }
+                CubeVisibility.measure(cube, pose, mesh);
+                if (firstSolid) break;
             }
             if (!box.scaleChildren) pose.scale(1 / box.scaleX, 1 / box.scaleY, 1 / box.scaleZ);
-            for (var child : box.childModels) if (child instanceof AdvancedModelBox advanced) solidBounds(advanced, pose, mesh);
+            if (children) for (var child : box.childModels) if (child instanceof AdvancedModelBox advanced) solidBounds(advanced, pose, mesh);
         } finally { pose.popPose(); }
     }
 

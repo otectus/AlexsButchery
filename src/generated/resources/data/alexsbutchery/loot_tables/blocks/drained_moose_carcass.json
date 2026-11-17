@@ -26,6 +26,26 @@
                       "op": "replace",
                       "source": "MobData",
                       "target": "BlockEntityTag.MobData"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "Bleeding",
+                      "target": "BlockEntityTag.Bleeding"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "BleedTicks",
+                      "target": "BlockEntityTag.BleedTicks"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "Fills",
+                      "target": "BlockEntityTag.Fills"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "AcidTicks",
+                      "target": "BlockEntityTag.AcidTicks"
                     }
                   ],
                   "source": "block_entity"
@@ -52,6 +72,26 @@
                       "op": "replace",
                       "source": "MobData",
                       "target": "BlockEntityTag.MobData"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "Bleeding",
+                      "target": "BlockEntityTag.Bleeding"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "BleedTicks",
+                      "target": "BlockEntityTag.BleedTicks"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "Fills",
+                      "target": "BlockEntityTag.Fills"
+                    },
+                    {
+                      "op": "replace",
+                      "source": "AcidTicks",
+                      "target": "BlockEntityTag.AcidTicks"
                     }
                   ],
                   "source": "block_entity"

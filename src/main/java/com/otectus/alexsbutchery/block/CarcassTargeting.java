@@ -17,12 +17,13 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Finds overhanging anatomy in loaded chunks; never creates proxy blocks or loads distant chunks. Candidates come from
  * {@link CarcassIndex}, are rejected by their envelope before their anatomy is tested, and only the nearest hit
- * becomes a hit result. The server runs the same code to validate actions, so client and server agree.
+ * becomes a hit result. The server runs the same code to validate actions, so client and server agree. Carcasses,
+ * skeletons, heads and head mounts are picked this way ({@link CarcassBounds#selectable}); rugs are not.
  */
 public final class CarcassTargeting {
-    public static boolean isCarcass(Level level, BlockPos pos) {
+    public static boolean isSelectable(Level level, BlockPos pos) {
         return !level.isOutsideBuildHeight(pos) && level.hasChunkAt(pos)
-                && level.getBlockState(pos).getBlock() instanceof AbstractCarcassBlock;
+                && CarcassBounds.selectable(level.getBlockState(pos).getBlock());
     }
 
     @Nullable
@@ -31,7 +32,7 @@ public final class CarcassTargeting {
         BlockHitResult obstacle = level.clip(new ClipContext(eye, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, viewer));
         double length = eye.distanceTo(end);
         double[] nearest = {obstacle.getType() == HitResult.Type.MISS ? 1 : Math.sqrt(eye.distanceToSqr(obstacle.getLocation())) / length};
-        BlockHitResult[] best = {obstacle.getType() == HitResult.Type.BLOCK && isCarcass(level, obstacle.getBlockPos()) ? obstacle : null};
+        BlockHitResult[] best = {obstacle.getType() == HitResult.Type.BLOCK && isSelectable(level, obstacle.getBlockPos()) ? obstacle : null};
         CarcassShape.Hit hit = new CarcassShape.Hit();
         BlockPos.MutableBlockPos winner = new BlockPos.MutableBlockPos();
         CarcassShape.Hit won = new CarcassShape.Hit();
@@ -49,7 +50,7 @@ public final class CarcassTargeting {
             // An unloaded chunk keeps its entries for when it returns; a loaded one must still hold the carcass.
             if (!(chunk instanceof LevelChunk loaded)) return true;
             if (!(loaded.getBlockEntity(pos, LevelChunk.EntityCreationType.CHECK) instanceof CarcassBlockEntity be)
-                    || !(be.getBlockState().getBlock() instanceof AbstractCarcassBlock)) return false;
+                    || !CarcassBounds.selectable(be.getBlockState().getBlock())) return false;
             if (Math.abs(pos.getY() - eye.y) > verticalRange) return true;
             var geometry = CarcassBounds.geometry(be.getBlockState(), level, pos);
             double entry = CarcassShape.entry(geometry.envelope(), eye, end, pos);
@@ -75,13 +76,13 @@ public final class CarcassTargeting {
     }
 
     public static boolean canReach(ServerPlayer player, BlockPos pos) {
-        if (!isCarcass(player.level(), pos)) return false;
+        if (!isSelectable(player.level(), pos)) return false;
         var hit = serverPick(player);
         return hit != null && hit.getBlockPos().equals(pos);
     }
 
     public static boolean validHit(ServerPlayer player, BlockPos pos, Vec3 point) {
-        if (!isCarcass(player.level(), pos)) return false;
+        if (!isSelectable(player.level(), pos)) return false;
         var hit = serverPick(player);
         // Packet hit coordinates are floats; allow rounding, not a second target or extra reach.
         return hit != null && hit.getBlockPos().equals(pos) && hit.getLocation().distanceToSqr(point) < .01;

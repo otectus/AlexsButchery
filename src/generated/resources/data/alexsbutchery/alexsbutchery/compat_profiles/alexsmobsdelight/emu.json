@@ -1,0 +1,22 @@
+{
+  "entity": "alexsmobs:emu",
+  "groups": {
+    "meat": {
+      "count_mode": "per_stage",
+      "counts": {
+        "cut_1": 1,
+        "cut_2": 0
+      },
+      "death_equivalents": [
+        "alexsmobsdelight:raw_emu",
+        "alexsmobsdelight:cooked_emu"
+      ],
+      "item": "alexsmobsdelight:raw_emu"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

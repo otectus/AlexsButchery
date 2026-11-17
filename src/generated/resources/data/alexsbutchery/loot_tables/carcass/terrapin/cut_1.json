@@ -5,15 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": 1.0,
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "butchery:raw_turtle_meat"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:terrapin",
+          "fallback": "alexsbutchery:carcass_native/terrapin/cut_1/meat",
+          "group": "meat",
+          "stage": "cut_1"
         }
       ],
       "rolls": 1.0
@@ -22,15 +18,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": 1.0,
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsbutchery:terrapin_shell"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:terrapin",
+          "fallback": "alexsbutchery:carcass_native/terrapin/cut_1/shell",
+          "group": "shell",
+          "stage": "cut_1"
         }
       ],
       "rolls": 1.0

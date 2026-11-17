@@ -25,24 +25,30 @@ com.otectus.alexsbutchery                            1 file
 com.otectus.alexsbutchery.advancement                1 file
 com.otectus.alexsbutchery.block                      14 files
 com.otectus.alexsbutchery.block.entity               2 files
-com.otectus.alexsbutchery.butcher                    9 files
+com.otectus.alexsbutchery.butcher                    15 files
 com.otectus.alexsbutchery.client                     1 file
+com.otectus.alexsbutchery.client.compat              1 file
+com.otectus.alexsbutchery.client.compat.carryon      1 file
+com.otectus.alexsbutchery.client.compat.carryon.mixin 2 files
 com.otectus.alexsbutchery.client.compat.jei          3 files
 com.otectus.alexsbutchery.client.gui                 1 file
-com.otectus.alexsbutchery.client.mixin               1 file
-com.otectus.alexsbutchery.client.pose                3 files
-com.otectus.alexsbutchery.client.render              14 files
-com.otectus.alexsbutchery.compat                     3 files
+com.otectus.alexsbutchery.client.mixin               2 files
+com.otectus.alexsbutchery.client.pose                4 files
+com.otectus.alexsbutchery.client.render              17 files
+com.otectus.alexsbutchery.compat                     15 files
 com.otectus.alexsbutchery.compat.jade                1 file
+com.otectus.alexsbutchery.compat.profile             7 files
 com.otectus.alexsbutchery.config                     2 files
-com.otectus.alexsbutchery.data                       11 files
-com.otectus.alexsbutchery.def                        8 files
-com.otectus.alexsbutchery.item                       1 file
-com.otectus.alexsbutchery.mixin                      2 files
-com.otectus.alexsbutchery.registry                   5 files
+com.otectus.alexsbutchery.data                       12 files
+com.otectus.alexsbutchery.def                        10 files
+com.otectus.alexsbutchery.item                       2 files
+com.otectus.alexsbutchery.mixin                      3 files
+com.otectus.alexsbutchery.mixin.compat               1 file
+com.otectus.alexsbutchery.recipe                     1 file
+com.otectus.alexsbutchery.registry                   7 files
 ```
 
-## Registered content (3 entries)
+## Registered content (6 entries)
 
 ### Blocks (1)
 
@@ -56,6 +62,24 @@ com.otectus.alexsbutchery.registry                   5 files
 |---|---|---|---|
 | `carcass` | `CARCASS` | `BlockEntityType<CarcassBlockEntity>` | src/main/java/com/otectus/alexsbutchery/registry/ModBlockEntities.java |
 | `skin_rack` | `SKIN_RACK` | `BlockEntityType<SkinRackBlockEntity>` | src/main/java/com/otectus/alexsbutchery/registry/ModBlockEntities.java |
+
+### Recipe serializers (1)
+
+| id | field | type | declared in |
+|---|---|---|---|
+| `rug` | `RUG` | `RugRecipe.Serializer` | src/main/java/com/otectus/alexsbutchery/registry/ModRecipeSerializers.java |
+
+### Loot Pool Entry Type (1)
+
+| id | field | type | declared in |
+|---|---|---|---|
+| `compat_yield` | `COMPAT_YIELD` | `LootPoolEntryType` | src/main/java/com/otectus/alexsbutchery/registry/ModLootEntries.java |
+
+### Loot Condition Type (1)
+
+| id | field | type | declared in |
+|---|---|---|---|
+| `mob_data` | `MOB_DATA` | `LootItemConditionType` | src/main/java/com/otectus/alexsbutchery/registry/ModLootEntries.java |
 
 ## Data generation
 
@@ -74,8 +98,8 @@ Regenerate with `gradlew runData` (output lands in `src/generated/resources`).
 | kind | count |
 |---|---|
 | blockstates | 332 |
-| block models | 6 |
-| item models | 414 |
+| block models | 7 |
+| item models | 415 |
 | block textures | 0 |
 | item textures | 83 |
 | recipes | 0 |
@@ -90,9 +114,32 @@ Run `check_mod.py` for a full consistency check (missing models, lang keys, text
 <!-- MODMAP:AUTO:END — everything below is hand-maintained and preserved -->
 
 
+
+
+
 ## Current focus
 
-Phases 4 and 5 (integrations and the requested polish) have landed. Jade shows each carcass's next step, the tool it
+0.2.2 corrects head and trophy contact: trophy skulls meet the wood face behind the plaque in every facing; the first
+solid skull/neck anchor ignores root-owned antlers and descendant ears/tusks, while an empty Cosmaw mouth root falls back
+to solid descendants. Cube bounds now measure transformed inflated/shrunk corners; flat planes do not support loose heads.
+Small trophies use a wall plaque (not the tilted native tabletop stand), with plaque size/trim in collision and selection;
+head/rug offsets are local to their facing, cached head poses clear on reload, and the bundled anatomy export is revision
+5. Release evidence: `docs/0.2.2-head-mount-validation.md`.
+
+0.2.1 also implements the carcass scaling/carrying/placement handoff: explicit item display contexts and visual culling,
+shared appearance decoding, optional Carry On rendering from each player's tile data, independent death-placement and
+ground-bleeding policies, and transactional portable progress. See `docs/0.2.1-carcass-validation.md` for release evidence.
+
+0.2.1 fixes the 0.2.0 review (`Alexs_Butchery_Bug_Review_and_Implementation_Plan.md`, AB-01..AB-18): the head-to-trophy
+look, wall-hung mounts and head selection, Jade for Butchery's own carcasses and skin rack, exclusive acid, resumable
+bleeding/acid, placement permissions, equal instant/timed blood, pre-damage tool loot, rack drops, more death-drop
+replacement, transactional dual-addon recipes, accurate JEI/Jade/creative presentation and the bounds export's home.
+
+0.2.0 is the cooking-addon compatibility release (Alex's Mobs Delight 1.1.0, Alex's Delight 1.5): contextual yields
+per creature, product group and stage, per-species death-drop removal, the dual-addon recipe policy, a synced client
+view for JEI and the creative tabs, operator diagnostics, and datapack profiles (`docs/compat-profiles.md`).
+
+Earlier: phases 4 and 5 (integrations and the requested polish) have landed. Jade shows each carcass's next step, the tool it
 needs, and bleeding and acid progress, plus the skin rack's state. An "Alex's Mobs" category ships in Butchery's
 Patchouli guide. Seven advancements sit under Butchery's tree, and Butchery's own chain is granted where our blocks
 stand in for its. Farmer's Delight cutting recipes are included, along with acid-made skeleton blocks and four pelt
@@ -109,7 +156,10 @@ reviewed for all 82 mobs.
       hidden as gear, the centipede's profile never loading, head/trophy/rug head placement
 - [ ] Per-mob head offsets where a close look finds a part clipping; void worm coil
       is bulky
-- [ ] Phase 5 remainder: sounds reuse, performance pass, CurseForge description, release jar, `installMod` task
+- [ ] Phase 5 remainder: sounds reuse, CurseForge description, `installMod` task
+- [x] Performance pass (frame time and targeting benchmark, `-PperfBench`), old-save fixture (`-PsaveCompat`), Ultima pack test
+- [x] 0.2.1 review fixes (AB-01..AB-18)
+- [x] 0.2.2 head-contact fixes: all 62 head species checked across facings/geometry variants, side-view galleries, release jar
 
 ## Decisions
 
@@ -134,13 +184,23 @@ reviewed for all 82 mobs.
   flag). Turtle shells disappear at CUT_1, when their shell item drops.
 - The client smoke test checks actual emitted vertices for all 82 mobs, all 61 skeletons, variant pixels, and model
   restoration after normal and interrupted renders. `smoketest_asset_*.png` compares stages and terrapin variants.
-- Drops go through `LivingDropsEvent`; Butchery's `/kill` cleanup is not reproduced. Items in
-  `#alexsbutchery:replaced_by_carcass` are removed from a carcass kill, everything else the mob drops is kept.
+- Drops go through `LivingDropsEvent` at `LOWEST` (after Alex's Mobs Delight's Dimensional Slicer additions); Butchery's
+  `/kill` cleanup is not reproduced. A carcass kill removes `CompatState.suppression(entity)`: the creature's own
+  `replacedDrops` still in `#alexsbutchery:replaced_by_carcass`, every active profile's `death_equivalents` for it, their
+  smelting results (burning deaths), and pack-added tag entries for every creature. Stacks with item data are kept.
 - The tags `butchery_alexs_mobs:*` belong to the official add-on and are never shipped here; blood is drained by
   calling Butchery's fill procedures directly (`compat/ButcheryHooks`).
 - Butchery's skin rack cannot show new skins, so hanging ours swaps the block for `alexsbutchery:skin_rack`, which
   reuses Butchery's salted/wet/leather rack models and swaps Butchery's empty rack back.
-- Items another installed mod already has are substituted at drop time (`compat/Substitutions`) and hidden from tabs.
+- Cooking addons are answered inside the stage tables, not after them: each replaceable product group (`Drop.group`:
+  meat, shell, tail, tentacles, fish) is one `alexsbutchery:compat_yield` pool whose native drops live unchanged in
+  `alexsbutchery:carcass_native/<mob>/<stage>/<group>`. `compat/CompatResolver` builds `CompatState` per server at start
+  and after each successful reload (profiles from `data/*/alexsbutchery/compat_profiles`, written by datagen from
+  `def/CompatDefs`); the entry walks its provider chain (selection file, `compat.providerPriority`, one unlisted
+  provider, native). Malformed profile reloads keep the last valid set. `compat/RecipePolicy` resolves the four
+  dual-addon recipe conflicts from the clean recipe list; `compat/CompatView` goes to clients on login and reload (JEI,
+  creative tabs) ahead of the recipe/tag packets. `compat.*` settings are snapshotted at server start (`CompatPolicy`).
+- The old item-only `compat/Substitutions` is gone; no output is rewritten after a table roll.
 - Pose profiles are keyed by mob id (`pose_profiles/<mob>.json`), not entity id; the centipede's entity is
   `centipede_head`. The smoke test fails if any mob lacks its own profile.
 - `CarcassModels` calls each renderer's `LivingEntityRenderer#scale` hook (SRG `m_7546_`) on a scratch pose per
@@ -162,7 +222,21 @@ reviewed for all 82 mobs.
   Bleeding mobs and fish have skeletons; bloodless mobs, both mosquitoes, the giant squid, the Void Worm and the
   Murmur do not (`MobDef.hasSkeleton`).
 - A rug is a block model (`models/block/rug.json`, pelt texture from `art/butchery_art.py`) plus the mob's head drawn
-  by the block entity renderer; three pelts around the head craft it.
+  by the block entity renderer; three pelts around the head craft it (`alexsbutchery:rug`, the shaped recipe whose rug
+  takes the head's MobData). A coat variant (`MobDef.rugCoat`: the white tiger) is the block state `coat_variant` and an
+  item model override. Rugs check only their anchor's support and overhang on purpose; Butchery's own rugs check none.
+- Appearance travels as `BlockEntityTag.MobData` only (`item/TrophyData`): head loot copies it (`copy_nbt`), Butchery's
+  taxidermy table gets it through `mixin/TaxidermyResultMixin` at its one result write (`TaxidermytableOnTickUpdateProcedure`
+  lambda, the same in 5.2 and 5.3), rugs through `RugRecipe#assemble`, and every head/mount/skeleton/rug drop copies it.
+- Whole carcasses also carry `Bleeding`, `BleedTicks`, `Fills` and `AcidTicks` in their item; `CarcassBlockEntity#load`
+  validates them (only a bleeding fresh carcass bleeds, never past its blood class; acid wins over bleeding).
+- Instant bleeding repeats Butchery's 50 mB `fillGrate` for the fills still owed; the instant-fill procedures are not
+  called (5.2 fills 1000 mB at once, 5.3 50 mB).
+- Native Jade guidance is data, not code: `NativeButcheryProbe` walks Butchery's real handlers, `tools/native_butchery_table.py`
+  keeps per block the flags its handlers read and the recommended tool per node, per Butchery version; unknown
+  versions, states or flags show nothing. Player corpses are left to Butchery 5.3's own Jade line.
+- Resource-pack pose overrides change drawing only; selection stays the bundled export (`PoseProfiles` logs overrides).
+- Forge 47.4.23 and Citadel 2.6.3 are the lowest declared versions: the only ones exercised.
 
 ## Known issues
 
@@ -173,3 +247,13 @@ reviewed for all 82 mobs.
 - Forge's `PlayerAdvancements.award` refuses FakePlayers; GameTests that check advancements use a plain
   `ServerPlayer` borrowing a FakePlayer's no-op connection (`TestSupport.advancementPlayer`).
 - The smoke-test window is tiled by Hyprland, so screenshots come out 1900x566 rather than 1280x720.
+- Forge autosaves a config value on `set()` and its file watcher reloads the file later on another thread; GameTests that
+  flip config raced with those reloads. `test/TestRun` stops watching this mod's and Butchery's config files in the
+  GameTest server.
+- Butchery 5.3 no longer calls its piglin brute and brown horse bleeding procedures: those carcasses hang but cannot
+  be bled there (5.2 bleeds them). Not ours; Jade offers no next step for them on 5.3.
+- Butchery's own skin rack: an empty hand on the black horse, fox and sheep skin states (2, 10, 18; on 5.2 also the brown
+  mooshroom, gray horse and snow fox, 3, 11, 19) clears the skin without giving it back. Not ours; Jade never suggests it.
+- Butchery's taxidermy table exposes every slot to hoppers: one below pulls the wheat, head and empty mount back out
+  before a trophy is made (observed by `NativeButcheryProbe`, 5.2 and 5.3), so the station cannot be automated that way.
+  Upstream; our result bridge only adds the head's look to the result the table computes.

@@ -1,0 +1,32 @@
+{
+  "entity": "alexsmobs:bison",
+  "groups": {
+    "meat": {
+      "count_mode": "per_stage",
+      "counts": {
+        "cut_1": {
+          "max": 2,
+          "min": 1
+        },
+        "cut_2": {
+          "max": 3,
+          "min": 2
+        },
+        "cut_3": {
+          "max": 2,
+          "min": 1
+        }
+      },
+      "death_equivalents": [
+        "alexsmobsdelight:raw_bison_meat",
+        "alexsmobsdelight:cooked_bison_meat"
+      ],
+      "item": "alexsmobsdelight:raw_bison_meat"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

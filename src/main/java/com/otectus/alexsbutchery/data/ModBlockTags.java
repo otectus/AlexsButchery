@@ -24,7 +24,7 @@ final class ModBlockTags extends BlockTagsProvider {
     protected void addTags(HolderLookup.Provider provider) {
         for (ModBlocks.Entries e : ModBlocks.all()) {
             MobDef def = e.def();
-            if (def.floor()) {
+            if (def.canBleedOnGround()) {
                 // Butchery's hang hint would tell players to hook these; only its drip particles should apply.
                 tag(ModTags.Blocks.CARCASS_NO_STATES).add(e.carcass().get());
                 tag(ModTags.Blocks.FLOOR_CARCASS).add(e.carcass().get());

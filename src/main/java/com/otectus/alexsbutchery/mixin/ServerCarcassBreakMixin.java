@@ -14,12 +14,12 @@ abstract class ServerCarcassBreakMixin {
     @Redirect(method = "handleBlockBreakAction", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/server/level/ServerPlayer;canReach(Lnet/minecraft/core/BlockPos;D)Z", remap = false))
     private boolean alexsbutchery$reach(ServerPlayer player, BlockPos pos, double padding) {
-        return CarcassTargeting.isCarcass(player.level(), pos) ? CarcassTargeting.canReach(player, pos) : player.canReach(pos, padding);
+        return CarcassTargeting.isSelectable(player.level(), pos) ? CarcassTargeting.canReach(player, pos) : player.canReach(pos, padding);
     }
 
     @Redirect(method = "handleBlockBreakAction", require = 0, at = @At(value = "INVOKE",
             target = "Lnet/minecraft/server/level/ServerPlayer;canReachRaw(Lnet/minecraft/core/BlockPos;D)Z", remap = false))
     private boolean alexsbutchery$rawReach(ServerPlayer player, BlockPos pos, double padding) {
-        return CarcassTargeting.isCarcass(player.level(), pos) ? CarcassTargeting.canReach(player, pos) : player.canReachRaw(pos, padding);
+        return CarcassTargeting.isSelectable(player.level(), pos) ? CarcassTargeting.canReach(player, pos) : player.canReachRaw(pos, padding);
     }
 }

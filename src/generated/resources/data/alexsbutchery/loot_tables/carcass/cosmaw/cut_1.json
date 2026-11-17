@@ -5,19 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 2.0,
-                "min": 1.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsbutchery:raw_cosmaw_meat"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:cosmaw",
+          "fallback": "alexsbutchery:carcass_native/cosmaw/cut_1/meat",
+          "group": "meat",
+          "stage": "cut_1"
         }
       ],
       "rolls": 1.0

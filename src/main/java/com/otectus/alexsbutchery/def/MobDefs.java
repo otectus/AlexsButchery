@@ -14,8 +14,9 @@ import static com.otectus.alexsbutchery.def.Drop.chance;
 import static com.otectus.alexsbutchery.def.Drop.of;
 
 /**
- * The mob table: every Alex's Mobs creature that butchers, in creative-tab order. Spectre, Sunbird, Guster, Rocky
- * Roller, Underminer, Enderiophage and Comb Jelly have nothing organic to butcher and are left out.
+ * The mob table: every Alex's Mobs creature that butchers (82 of its 90), in creative-tab order. Spectre, Sunbird,
+ * Guster, Rocky Roller, Underminer, Enderiophage, Comb Jelly and the plant-like Flutter have nothing organic to butcher
+ * and are left out.
  */
 public final class MobDefs {
     private static final Map<String, MobDef> BY_ID = new LinkedHashMap<>();
@@ -46,19 +47,19 @@ public final class MobDefs {
         add(mammal("kangaroo", "Kangaroo", "alexsmobs:kangaroo_meat", "alexsmobs:kangaroo_hide", 1, 2).heavy()
                 .replaces("alexsmobs:kangaroo_meat", "alexsmobs:kangaroo_hide"));
         add(floor("elephant", "Elephant", "raw_elephant_meat", ours("elephant_hide"), 4, 6)
-                .drops(MobDef.HEAD, chance(ours("elephant_tusk"), 2, 2, 0.75F)));
+                .drops(MobDef.HEAD, chance(ours("elephant_tusk"), 2, 2, 0.75F).needs("Tusked")));
         add(mammal("rhinoceros", "Rhinoceros", "raw_rhino_meat", ours("rhino_hide"), 2, 3).heavy().mount(MountSize.LARGE)
                 .drops(MobDef.HEAD, of(ours("rhino_horn"), 1)));
         add(mammal("bison", "Bison", "butchery:raw_chuck_steak", ours("bison_hide"), 1, 2).heavy().mount(MountSize.LARGE).rug("bison_hide")
                 .drops("skin", of("alexsmobs:bison_fur", 2, 3))
-                .drops(MobDef.CUT_1, of("butchery:raw_ribeye_steak", 1, 2))
-                .drops(MobDef.CUT_2, of("butchery:raw_sirloin_steak", 1, 2), of("butchery:raw_tbone_steak", 1))
-                .drops(MobDef.CUT_3, of("butchery:raw_rump_steak", 1, 2), of(HOOF, 2))
+                .drops(MobDef.CUT_1, of("butchery:raw_ribeye_steak", 1, 2).in(Drop.MEAT))
+                .drops(MobDef.CUT_2, of("butchery:raw_sirloin_steak", 1, 2).in(Drop.MEAT), of("butchery:raw_tbone_steak", 1).in(Drop.MEAT))
+                .drops(MobDef.CUT_3, of("butchery:raw_rump_steak", 1, 2).in(Drop.MEAT), of(HOOF, 2))
                 .replaces("minecraft:beef", "alexsmobs:bison_fur"));
         add(mammal("moose", "Moose", "alexsmobs:moose_ribs", ours("moose_hide"), 1, 2).heavy().mount(MountSize.LARGE)
-                .drops(MobDef.HEAD, chance("alexsmobs:moose_antler", 2, 2, 0.8F))
-                .drops(MobDef.CUT_2, of(ours("raw_venison"), 1, 2)).replaces("alexsmobs:moose_ribs", "alexsmobs:moose_antler"));
-        add(mammal("tiger", "Tiger", "raw_big_cat_meat", ours("tiger_pelt"), 1, 1).rug("tiger_pelt"));
+                .drops(MobDef.HEAD, chance("alexsmobs:moose_antler", 2, 2, 0.8F).needs("Antlered"))
+                .drops(MobDef.CUT_2, of(ours("raw_venison"), 1, 2).in(Drop.MEAT)).replaces("alexsmobs:moose_ribs", "alexsmobs:moose_antler"));
+        add(mammal("tiger", "Tiger", "raw_big_cat_meat", ours("tiger_pelt"), 1, 1).rug("tiger_pelt").rugCoat("White", "white_tiger_pelt"));
         add(mammal("snow_leopard", "Snow Leopard", "raw_big_cat_meat", ours("snow_leopard_pelt"), 1, 1).rug("snow_leopard_pelt"));
         add(mammal("maned_wolf", "Maned Wolf", "butchery:raw_wolf_meat", ours("maned_wolf_pelt"), 1, 1));
         add(mammal("anteater", "Anteater", "raw_bushmeat", ours("anteater_hide"), 1, 1));
@@ -67,10 +68,11 @@ public final class MobDefs {
                 .drops(MobDef.CUT_1, of("alexsmobs:dropbear_claw", 2, 4)).replaces("alexsmobs:dropbear_claw"));
         add(mammal("froststalker", "Froststalker", "raw_froststalker_meat", ours("froststalker_hide"), 1, 1)
                 .drops(MobDef.HEAD, of("alexsmobs:froststalker_horn", 1)).replaces("alexsmobs:froststalker_horn"));
+        // Alex's Mobs drops porkchops as the tusklin's meat: the carcass's tusklin meat stands for them (raw or cooked).
         add(mammal("tusklin", "Tusklin", "raw_tusklin_meat", ours("tusklin_hide"), 1, 2)
-                .drops(MobDef.HEAD, of(ours("tusklin_tusk"), 2)));
+                .drops(MobDef.HEAD, of(ours("tusklin_tusk"), 2)).replaces("minecraft:porkchop"));
         add(mammal("bunfungus", "Bunfungus", "raw_bunfungus_meat", null, 1, 2)
-                .drops(MobDef.CUT_2, of("minecraft:red_mushroom", 1, 2), of("minecraft:brown_mushroom", 1, 2)));
+                .drops(MobDef.CUT_2, of("minecraft:red_mushroom", 1, 2), of("minecraft:brown_mushroom", 1, 2)).replaces("minecraft:red_mushroom"));
         add(mammal("warped_toad", "Warped Toad", "raw_warped_toad_leg", null, 1, 1));
         add(mammal("cosmaw", "Cosmaw", "raw_cosmaw_meat", ours("cosmaw_hide"), 1, 2).heavy());
         add(mammal("endergrade", "Endergrade", "raw_endergrade_meat", ours("endergrade_hide"), 1, 1)
@@ -93,27 +95,28 @@ public final class MobDefs {
         add(small("caiman", "Caiman", "raw_reptile_meat", ours("caiman_hide"))
                 .drops("skin", of("alexsmobs:crocodile_scute", 1, 2)));
         add(mammal("alligator_snapping_turtle", "Alligator Snapping Turtle", "butchery:raw_turtle_meat", null, 1, 1)
-                .drops(MobDef.CUT_1, of(ours("snapping_turtle_shell"), 1), of("alexsmobs:spiked_scute", 1, 2))
+                .drops(MobDef.CUT_1, of(ours("snapping_turtle_shell"), 1).in(Drop.SHELL), of("alexsmobs:spiked_scute", 1, 2))
                 .replaces("alexsmobs:spiked_scute"));
         add(small("terrapin", "Terrapin", "butchery:raw_turtle_meat", null)
-                .drops(MobDef.CUT_1, of(ours("terrapin_shell"), 1)));
+                .drops(MobDef.CUT_1, of(ours("terrapin_shell"), 1).in(Drop.SHELL)));
 
         // ---- Birds --------------------------------------------------------------------------------------------
+        // The birds whose Alex's Mobs death table drops feathers give them again when plucked; the hummingbird's does not.
         add(bird("emu", "Emu", "raw_emu_meat", BloodClass.REGULAR)
-                .drops("pluck", of("alexsmobs:emu_feather", 1, 2)));
+                .drops("pluck", of("alexsmobs:emu_feather", 1, 2)).replaces("alexsmobs:emu_feather", FEATHER));
         add(bird("roadrunner", "Roadrunner", "raw_game_bird", BloodClass.SMALL)
-                .drops("pluck", chance("alexsmobs:roadrunner_feather", 1, 1, 0.5F)));
-        add(bird("shoebill", "Shoebill", "raw_game_bird", BloodClass.REGULAR));
-        add(bird("seagull", "Seagull", "raw_game_bird", BloodClass.SMALL));
-        add(bird("crow", "Crow", "raw_game_bird", BloodClass.SMALL));
-        add(bird("blue_jay", "Blue Jay", "raw_game_bird", BloodClass.SMALL));
-        add(bird("toucan", "Toucan", "raw_game_bird", BloodClass.SMALL));
-        add(bird("potoo", "Potoo", "raw_game_bird", BloodClass.SMALL));
-        add(bird("bald_eagle", "Bald Eagle", "raw_game_bird", BloodClass.SMALL));
+                .drops("pluck", chance("alexsmobs:roadrunner_feather", 1, 1, 0.5F)).replaces("alexsmobs:roadrunner_feather", FEATHER));
+        add(bird("shoebill", "Shoebill", "raw_game_bird", BloodClass.REGULAR).replaces(FEATHER));
+        add(bird("seagull", "Seagull", "raw_game_bird", BloodClass.SMALL).replaces(FEATHER));
+        add(bird("crow", "Crow", "raw_game_bird", BloodClass.SMALL).replaces(FEATHER));
+        add(bird("blue_jay", "Blue Jay", "raw_game_bird", BloodClass.SMALL).replaces(FEATHER));
+        add(bird("toucan", "Toucan", "raw_game_bird", BloodClass.SMALL).replaces(FEATHER));
+        add(bird("potoo", "Potoo", "raw_game_bird", BloodClass.SMALL).replaces(FEATHER));
+        add(bird("bald_eagle", "Bald Eagle", "raw_game_bird", BloodClass.SMALL).replaces(FEATHER));
         add(bird("hummingbird", "Hummingbird", "raw_game_bird", BloodClass.SMALL));
         add(bird("soul_vulture", "Soul Vulture", null, BloodClass.REGULAR)
                 .drops(MobDef.CUT_1, of("alexsmobs:soul_heart", 1)).drops(MobDef.CUT_2, of(BONE, 1, 2))
-                .replaces("alexsmobs:soul_heart"));
+                .replaces("alexsmobs:soul_heart", BONE));
 
         // ---- Small mammals ------------------------------------------------------------------------------------
         add(small("raccoon", "Raccoon", "raw_bushmeat", ours("raccoon_pelt"))
@@ -138,9 +141,10 @@ public final class MobDefs {
         add(MobDef.builder("giant_squid", "Giant Squid").floor().skinless().headless().noSkeleton()
                 .drops(MobDef.CUT_1, of(TENTACLES, 3, 4), of("alexsmobs:lost_tentacle", 1))
                 .drops(MobDef.CUT_2, of(TENTACLES, 3, 4), of(INK, 1, 2))
-                .drops(MobDef.CUT_3, of(INK, 1), of(SCRAPS, 2, 3)).replaces("alexsmobs:lost_tentacle"));
+                .drops(MobDef.CUT_3, of(INK, 1), of(SCRAPS, 2, 3)).replaces("alexsmobs:lost_tentacle", INK));
         add(MobDef.builder("mimic_octopus", "Mimic Octopus").small().noBlood().headless()
-                .drops(MobDef.CUT_1, of(TENTACLES, 1, 2)).drops(MobDef.CUT_2, of(TENTACLES, 1, 2)).drops(MobDef.CUT_3, of(INK, 1)));
+                .drops(MobDef.CUT_1, of(TENTACLES, 1, 2).in(Drop.TENTACLES)).drops(MobDef.CUT_2, of(TENTACLES, 1, 2).in(Drop.TENTACLES))
+                .drops(MobDef.CUT_3, of(INK, 1)).replaces(INK));
         add(fish("catfish", "Catfish", "alexsmobs:raw_catfish", 1, 2).replaces("alexsmobs:raw_catfish"));
         add(fish("blobfish", "Blobfish", "alexsmobs:blobfish", 1, 1).replaces("alexsmobs:blobfish"));
         add(fish("cosmic_cod", "Cosmic Cod", "alexsmobs:cosmic_cod", 1, 1).replaces("alexsmobs:cosmic_cod"));
@@ -151,7 +155,7 @@ public final class MobDefs {
                 .drops(MobDef.CUT_1, of("alexsmobs:lobster_tail", 1)).drops(MobDef.CUT_2, of(SCRAPS, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1))
                 .replaces("alexsmobs:lobster_tail"));
         add(MobDef.builder("mantis_shrimp", "Mantis Shrimp").small().noBlood().headless()
-                .drops(MobDef.CUT_1, of(ours("raw_mantis_shrimp_tail"), 1, 2)).drops(MobDef.CUT_2, of(SCRAPS, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1)));
+                .drops(MobDef.CUT_1, of(ours("raw_mantis_shrimp_tail"), 1, 2).in(Drop.TAIL)).drops(MobDef.CUT_2, of(SCRAPS, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1)));
         add(MobDef.builder("triops", "Triops").small().noBlood().headless()
                 .drops(MobDef.CUT_1, of(SCRAPS, 1)).drops(MobDef.CUT_2, of(FISH_BONES, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1)));
         add(MobDef.builder("stradpole", "Stradpole").small().noBlood().headless()
@@ -167,7 +171,8 @@ public final class MobDefs {
                 .drops(MobDef.CUT_1, of("alexsmobs:cockroach_wing", 1, 2)).drops(MobDef.CUT_2, of(SCRAPS, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1))
                 .replaces("alexsmobs:cockroach_wing"));
         add(MobDef.builder("fly", "Fly").small().noBlood().headless()
-                .drops(MobDef.CUT_1, of("alexsmobs:maggot", 1, 2)).drops(MobDef.CUT_2, of(SCRAPS, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1)));
+                .drops(MobDef.CUT_1, of("alexsmobs:maggot", 1, 2)).drops(MobDef.CUT_2, of(SCRAPS, 1)).drops(MobDef.CUT_3, of(SCRAPS, 1))
+                .replaces("alexsmobs:maggot"));
         add(MobDef.builder("crimson_mosquito", "Crimson Mosquito").small().skinless().noSkeleton()
                 .drops(MobDef.CUT_1, of("alexsmobs:mosquito_proboscis", 1)).drops(MobDef.CUT_2, chance("alexsmobs:blood_sac", 1, 1, 0.5F))
                 .drops(MobDef.CUT_3, of(SCRAPS, 1, 2)).replaces("alexsmobs:mosquito_proboscis", "alexsmobs:blood_sac"));
@@ -188,9 +193,9 @@ public final class MobDefs {
         // ---- Bone, sculk, void and other exotics --------------------------------------------------------------
         add(MobDef.builder("bone_serpent", "Bone Serpent").noBlood()
                 .drops(MobDef.CUT_1, of("alexsmobs:bone_serpent_tooth", 1, 2)).drops(MobDef.CUT_2, of(BONE, 2, 4)).drops(MobDef.CUT_3, of(BONE, 2, 4))
-                .replaces("alexsmobs:bone_serpent_tooth"));
+                .replaces("alexsmobs:bone_serpent_tooth", BONE));
         add(MobDef.builder("skelewag", "Skelewag").noBlood()
-                .drops(MobDef.CUT_1, of(BONE, 1, 2)).drops(MobDef.CUT_2, of(BONE, 1, 2)).drops(MobDef.CUT_3, of(BONE, 1, 2)));
+                .drops(MobDef.CUT_1, of(BONE, 1, 2)).drops(MobDef.CUT_2, of(BONE, 1, 2)).drops(MobDef.CUT_3, of(BONE, 1, 2)).replaces(BONE));
         add(MobDef.builder("skreecher", "Skreecher").noBlood()
                 .drops(MobDef.CUT_1, of("alexsmobs:skreecher_soul", 1)).drops(MobDef.CUT_2, of(SCULK_BONE, 1, 2)).drops(MobDef.CUT_3, of(SCULK_BONE, 1))
                 .replaces("alexsmobs:skreecher_soul"));
@@ -223,10 +228,10 @@ public final class MobDefs {
         String m = meatId(meat);
         if (skin == null) b.skinless();
         else b.drops("skin", of(skin, Math.max(1, skinCount - 1), skinCount));
-        b.drops(MobDef.CUT_1, of(m, 1, 2));
+        b.drops(MobDef.CUT_1, of(m, 1, 2).in(Drop.MEAT));
         if (fat > 0) b.drops(MobDef.CUT_1, of(FAT, 1, fat));
-        b.drops(MobDef.CUT_2, of(m, 2, 3));
-        b.drops(MobDef.CUT_3, of(m, 1, 2), of(BONE, 2, 3));
+        b.drops(MobDef.CUT_2, of(m, 2, 3).in(Drop.MEAT));
+        b.drops(MobDef.CUT_3, of(m, 1, 2).in(Drop.MEAT), of(BONE, 2, 3));
         return b;
     }
 
@@ -236,8 +241,8 @@ public final class MobDefs {
         String m = meatId(meat);
         if (skin == null) b.skinless();
         else b.drops("skin", of(skin, 1));
-        b.drops(MobDef.CUT_1, of(m, 1));
-        b.drops(MobDef.CUT_2, of(m, 1));
+        b.drops(MobDef.CUT_1, of(m, 1).in(Drop.MEAT));
+        b.drops(MobDef.CUT_2, of(m, 1).in(Drop.MEAT));
         b.drops(MobDef.CUT_3, of(BONE, 1));
         return b;
     }
@@ -250,8 +255,8 @@ public final class MobDefs {
         b.drops("pluck", of(FEATHER, regular ? 3 : 1, regular ? 5 : 3));
         if (meat != null) {
             String m = meatId(meat);
-            b.drops(MobDef.CUT_1, of(m, 1, regular ? 2 : 1));
-            b.drops(MobDef.CUT_2, of(m, 1));
+            b.drops(MobDef.CUT_1, of(m, 1, regular ? 2 : 1).in(Drop.MEAT));
+            b.drops(MobDef.CUT_2, of(m, 1).in(Drop.MEAT));
         }
         b.drops(MobDef.CUT_3, of(BIRD_FOOT, 2), of(BONE, 1));
         return b;
@@ -263,16 +268,16 @@ public final class MobDefs {
         String m = meatId(meat);
         if (skin == null) b.skinless();
         else b.drops("skin", of(skin, skinMin, skinMax));
-        b.drops(MobDef.CUT_1, of(m, 3, 5), of(FAT, 2, 3));
-        b.drops(MobDef.CUT_2, of(m, 4, 6));
-        b.drops(MobDef.CUT_3, of(m, 3, 4), of(BONE, 6, 8));
+        b.drops(MobDef.CUT_1, of(m, 3, 5).in(Drop.MEAT), of(FAT, 2, 3));
+        b.drops(MobDef.CUT_2, of(m, 4, 6).in(Drop.MEAT));
+        b.drops(MobDef.CUT_3, of(m, 3, 4).in(Drop.MEAT), of(BONE, 6, 8));
         return b;
     }
 
     /** A fish: no blood, no head block, but a fish skeleton; the fish item, then bones and a chance of oil. */
     private static MobDef.Builder fish(String id, String name, String item, int min, int max) {
         return MobDef.builder(id, name).small().noBlood().headless().skeleton()
-                .drops(MobDef.CUT_1, of(item, min, max))
+                .drops(MobDef.CUT_1, of(item, min, max).in(Drop.FISH))
                 .drops(MobDef.CUT_2, of(FISH_BONES, 1))
                 .drops(MobDef.CUT_3, chance(FISH_OIL, 1, 1, 0.15F), of(SCRAPS, 1));
     }
@@ -296,6 +301,11 @@ public final class MobDefs {
     public static MobDef byEntity(EntityType<?> type) {
         ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(type);
         return key == null ? null : BY_ENTITY.get(key);
+    }
+
+    @Nullable
+    public static MobDef byEntityId(ResourceLocation entity) {
+        return BY_ENTITY.get(entity);
     }
 
     private MobDefs() {}

@@ -37,7 +37,7 @@ final class ModAdvancements implements ForgeAdvancementProvider.AdvancementGener
 
     static {
         text("wild_game", "Wild Game", "Kill one of Alex's Mobs creatures with a cleaver to get its carcass");
-        text("where_it_lies", "Where It Lies", "Bleed a carcass too heavy to hang, right where it fell");
+        text("where_it_lies", "Where It Lies", "Bleed a placed-at-death carcass right where it fell");
         text("birds_of_a_feather", "Birds of a Feather", "Pluck a bird's carcass with a skinning knife");
         text("big_game_hunter", "Big Game Hunter", "Mount the head of an Alex's Mobs creature at the taxidermy table");
         text("bare_bones", "Bare Bones", "Pour a bottle of sulfuric acid on a whole carcass and wait for its skeleton");

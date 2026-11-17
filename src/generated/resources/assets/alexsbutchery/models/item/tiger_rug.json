@@ -1,5 +1,13 @@
 {
   "parent": "minecraft:item/generated",
+  "overrides": [
+    {
+      "model": "alexsbutchery:item/tiger_rug_coat_variant",
+      "predicate": {
+        "alexsbutchery:coat_variant": 1.0
+      }
+    }
+  ],
   "textures": {
     "layer0": "alexsbutchery:block/rug/tiger_pelt"
   }

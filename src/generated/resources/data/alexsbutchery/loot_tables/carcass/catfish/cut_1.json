@@ -5,19 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 2.0,
-                "min": 1.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsmobs:raw_catfish"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:catfish",
+          "fallback": "alexsbutchery:carcass_native/catfish/cut_1/fish",
+          "group": "fish",
+          "stage": "cut_1"
         }
       ],
       "rolls": 1.0

@@ -76,7 +76,9 @@ public final class ButcheringTrigger extends SimpleCriterionTrigger<ButcheringTr
         }
 
         boolean matches(MobDef def, Action done) {
-            return (action == null || action == done) && (mob == null || mob.equals(def.id())) && (floor == null || floor == def.floor());
+            // The legacy "floor" criterion describes the species table, not a mutable per-world representation override.
+            return (action == null || action == done) && (mob == null || mob.equals(def.id()))
+                    && (floor == null || floor == (def.deathSpawnMode() == com.otectus.alexsbutchery.def.DeathSpawnMode.PLACED_BLOCK));
         }
 
         @Override

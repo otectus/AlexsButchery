@@ -5,40 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 3.0,
-                "min": 2.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsmobs:moose_ribs"
-        }
-      ],
-      "rolls": 1.0
-    },
-    {
-      "bonus_rolls": 0.0,
-      "entries": [
-        {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 2.0,
-                "min": 1.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsbutchery:raw_venison"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:moose",
+          "fallback": "alexsbutchery:carcass_native/moose/cut_2/meat",
+          "group": "meat",
+          "stage": "cut_2"
         }
       ],
       "rolls": 1.0

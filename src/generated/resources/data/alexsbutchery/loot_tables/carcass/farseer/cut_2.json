@@ -5,19 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 3.0,
-                "min": 2.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "butchery:flesh"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:farseer",
+          "fallback": "alexsbutchery:carcass_native/farseer/cut_2/meat",
+          "group": "meat",
+          "stage": "cut_2"
         }
       ],
       "rolls": 1.0

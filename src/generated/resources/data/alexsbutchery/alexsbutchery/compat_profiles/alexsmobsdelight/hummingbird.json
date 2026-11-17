@@ -1,0 +1,22 @@
+{
+  "entity": "alexsmobs:hummingbird",
+  "groups": {
+    "meat": {
+      "count_mode": "per_stage",
+      "counts": {
+        "cut_1": 1,
+        "cut_2": 0
+      },
+      "death_equivalents": [
+        "alexsmobsdelight:raw_hummingbird",
+        "alexsmobsdelight:cooked_hummingbird"
+      ],
+      "item": "alexsmobsdelight:raw_hummingbird"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

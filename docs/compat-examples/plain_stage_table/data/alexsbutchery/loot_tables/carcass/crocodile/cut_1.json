@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "alexsbutchery:raw_reptile_meat",
+          "functions": [{"function": "minecraft:set_count", "count": {"min": 2, "max": 3}}]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [{"type": "minecraft:item", "name": "minecraft:leather"}]
+    }
+  ]
+}

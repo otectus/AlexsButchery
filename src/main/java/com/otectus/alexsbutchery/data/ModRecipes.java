@@ -3,9 +3,11 @@ package com.otectus.alexsbutchery.data;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.otectus.alexsbutchery.AlexsButchery;
+import com.otectus.alexsbutchery.def.CompatDefs;
 import com.otectus.alexsbutchery.def.ItemDefs;
 import com.otectus.alexsbutchery.def.MobDef;
 import com.otectus.alexsbutchery.registry.ModItems;
+import com.otectus.alexsbutchery.registry.ModRecipeSerializers;
 import net.mcreator.butchery.jei_recipes.TaxidermyRecipe;
 import net.minecraft.data.PackOutput;
 import net.minecraft.data.recipes.FinishedRecipe;
@@ -25,8 +27,8 @@ import java.util.function.Consumer;
 
 /**
  * Cooking for every meat family, Butchery taxidermy (wheat + head + the right empty mount) for every head, pelt rugs,
- * and the recipes that only load beside another mod: Immersive Tanning hide mounting and the Farmer's Delight
- * cutting board.
+ * and the recipes that only load beside another mod: Immersive Tanning hide mounting, the Farmer's Delight cutting
+ * board, and one-way conversions of our meats and shells into a cooking addon's equivalents.
  */
 final class ModRecipes extends RecipeProvider {
 
@@ -57,13 +59,15 @@ final class ModRecipes extends RecipeProvider {
             if (e.rug() == null || e.head() == null) continue;
             Item skin = ModItems.simple(e.def().rug()).get();
             // Butchery's bear rug asks five skins of a mob that drops one to three; ours drop one or two, so three.
+            // Written as alexsbutchery:rug, the shaped recipe whose rug keeps the head's appearance.
             ShapedRecipeBuilder.shaped(RecipeCategory.DECORATIONS, e.rug().get())
                     .pattern("aba").pattern(" a ")
                     .define('a', skin).define('b', e.head().get())
                     .unlockedBy("has_" + e.def().rug(), has(skin))
-                    .save(out, AlexsButchery.id("rug/" + e.def().id() + "_rug"));
+                    .save(recipe -> out.accept(new WithSerializer(recipe, ModRecipeSerializers.RUG.get())), AlexsButchery.id("rug/" + e.def().id() + "_rug"));
         }
         cutting(out);
+        for (CompatDefs.Equivalence e : CompatDefs.equivalences()) out.accept(new Conversion(e));
         for (ModItems.Entries e : ModItems.all()) {
             if (e.head() == null || e.mount() == null) continue;
             MobDef def = e.def();
@@ -90,6 +94,36 @@ final class ModRecipes extends RecipeProvider {
         for (String meat : List.of("game_bird", "emu_meat", "reptile_meat")) out.accept(new Cutting("raw_" + meat, cuts, 2));
         out.accept(new Cutting("raw_tusklin_meat", "farmersdelight:bacon", 2));
         out.accept(new Cutting("raw_shark_meat", "farmersdelight:cod_slice", 2));
+    }
+
+    /** A generated recipe written with another (compatible) serializer; everything else as generated. */
+    private record WithSerializer(FinishedRecipe recipe, RecipeSerializer<?> serializer) implements FinishedRecipe {
+        @Override
+        public void serializeRecipeData(JsonObject json) {
+            recipe.serializeRecipeData(json);
+        }
+
+        @Override
+        public ResourceLocation getId() {
+            return recipe.getId();
+        }
+
+        @Override
+        public RecipeSerializer<?> getType() {
+            return serializer;
+        }
+
+        @Nullable
+        @Override
+        public JsonObject serializeAdvancement() {
+            return recipe.serializeAdvancement();
+        }
+
+        @Nullable
+        @Override
+        public ResourceLocation getAdvancementId() {
+            return recipe.getAdvancementId();
+        }
     }
 
     private record Cutting(String raw, String result, int count) implements FinishedRecipe {
@@ -126,6 +160,66 @@ final class ModRecipes extends RecipeProvider {
         @Override
         public ResourceLocation getId() {
             return AlexsButchery.id("farmersdelight/cutting/" + raw);
+        }
+
+        @Override
+        public RecipeSerializer<?> getType() {
+            return RecipeSerializer.SHAPELESS_RECIPE;
+        }
+
+        @Nullable
+        @Override
+        public JsonObject serializeAdvancement() {
+            return null;
+        }
+
+        @Nullable
+        @Override
+        public ResourceLocation getAdvancementId() {
+            return null;
+        }
+    }
+
+    /**
+     * One-way conversion of a stack of our item into the cooking addon's equivalent (raw to raw, cooked to cooked), so
+     * meat from before the addon was installed reaches its recipes. A stack carrying item data does not convert. Only for items that are the same product whatever
+     * creature they came from (see {@link CompatDefs}); loaded only with the addon, and removed at runtime when the
+     * server disables that provider or runs in native mode.
+     */
+    private record Conversion(CompatDefs.Equivalence equivalence) implements FinishedRecipe {
+        @Override
+        public JsonObject serializeRecipe() {
+            JsonObject json = new JsonObject();
+            json.addProperty("type", "minecraft:crafting_shapeless");
+            JsonArray conditions = new JsonArray();
+            JsonObject loaded = new JsonObject();
+            loaded.addProperty("type", "forge:mod_loaded");
+            loaded.addProperty("modid", equivalence.provider());
+            conditions.add(loaded);
+            json.add("conditions", conditions);
+            json.addProperty("category", "misc");
+            json.addProperty("group", AlexsButchery.MOD_ID + "_compat");
+            // Forge's strict ingredient: only a stack without item data converts, so no custom data is silently lost.
+            JsonArray ingredients = new JsonArray();
+            JsonObject ingredient = new JsonObject();
+            ingredient.addProperty("type", "forge:nbt");
+            ingredient.addProperty("item", AlexsButchery.id(equivalence.ours()).toString());
+            ingredient.addProperty("count", 1);
+            ingredients.add(ingredient);
+            json.add("ingredients", ingredients);
+            JsonObject result = new JsonObject();
+            result.addProperty("item", equivalence.theirs().toString());
+            result.addProperty("count", 1);
+            json.add("result", result);
+            return json;
+        }
+
+        @Override
+        public void serializeRecipeData(JsonObject json) {}
+
+        @Override
+        public ResourceLocation getId() {
+            return CompatDefs.equivalenceRecipe(equivalence);
         }
 
         @Override

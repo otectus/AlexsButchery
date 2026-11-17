@@ -31,6 +31,7 @@ import java.util.Map;
 
 final class GeometryChecks {
     static void run(Map<String, Object> checks) {
+        PoseRegressionChecks.run(checks);
         List<String> failures = new ArrayList<>();
         List<String> floorFailures = new ArrayList<>();
         List<String> emptyFloorCases = new ArrayList<>();
@@ -107,8 +108,37 @@ final class GeometryChecks {
         checks.put("geometry_lying_reported_mobs_body_on_floor", suspended.isEmpty());
         checks.put("geometry_lying_reported_mobs_suspended", suspended.toString());
         coplanarSupport(checks);
+        heads(checks);
+        HeadContactChecks.run(checks);
         rugs(checks);
         laviathan(checks);
+    }
+
+    /**
+     * Every vertex of every drawn head and trophy head, for every facing, appearance variant and snapshot size, lies in
+     * the selection the server uses for it (the exported head, plus the plaque for mounts).
+     */
+    private static void heads(Map<String, Object> checks) {
+        List<String> failures = new ArrayList<>();
+        int cases = 0;
+        for (var def : MobDefs.all()) for (var block : BoundsExport.heads(def)) {
+            List<CompoundTag> variants = new ArrayList<>(BoundsExport.variants(def));
+            String sizeTag = CarcassBounds.scaleTag(def.id());
+            if (!sizeTag.isEmpty()) for (var data : BoundsExport.variants(def)) for (float size : new float[]{.7F, 1.35F}) {
+                var scaled = data.copy(); scaled.putFloat(sizeTag, size); variants.add(scaled);
+            }
+            for (var data : variants) for (Direction facing : Direction.Plane.HORIZONTAL) {
+                var state = block.defaultBlockState().setValue(com.otectus.alexsbutchery.block.HeadBlock.FACING, facing);
+                var boxes = CarcassBounds.boxes(state, data, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState());
+                FloorMesh mesh = new FloorMesh(boxes, CarcassBounds.key(state, data) + "/" + facing + "/" + data, failures);
+                BoundsExport.renderHead(state, data, facing, mesh);
+                if (!mesh.hasVertices()) failures.add(CarcassBounds.key(state, data) + "/" + facing + ":nothing-drawn");
+                cases++;
+            }
+        }
+        checks.put("geometry_head_render_cases", cases);
+        checks.put("geometry_head_failures", failures.toString());
+        checks.put("geometry_head_bounds_cover_rendered_heads", failures.isEmpty());
     }
 
     private static void rugs(Map<String, Object> checks) {

@@ -16,6 +16,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
@@ -27,6 +29,7 @@ import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraft.world.phys.AABB;
@@ -48,15 +51,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Frame-time and subsystem benchmark for carcass targeting ({@code runClient -PsmokeTest -PperfBench}). Builds the same
  * scenes in a fresh flat world, fixes the camera, samples frame times with vsync and the frame cap off, times the
  * picker, vanilla's shape lookup, clip and outline traversal in place, and writes {@code perf-<label>.json}.
- * Uses only API present since 0.1.1 so the identical class can measure the baseline build.
+ * Presentation cases require this release; their legacy item measurement reconstructs the captured pre-fix transforms.
  */
 @Mod.EventBusSubscriber(modid = SmokeTestAgent.MOD_ID, value = Dist.CLIENT)
 public final class PerfBench {
@@ -67,6 +74,13 @@ public final class PerfBench {
     private static final double SAMPLE_S = Double.parseDouble(System.getProperty("alexsbutchery.smoketest.perfSeconds", "10"));
     private static final int SAMPLES = Integer.getInteger("alexsbutchery.smoketest.perfSamples", 3);
     private static final String[] NAMED = {"laviathan", "void_worm", "centipede", "farseer"};
+    private static final List<String> SCENE_GROUPS = List.of("empty", "cold", "presentation", "items32",
+            "laviathan", "void_worm", "centipede", "farseer", "mixed16", "dense64", "barrels16",
+            "worst_ring", "lifecycle");
+    private static final List<String> REMAINING_SCENE_GROUPS = List.of("mixed16", "dense64", "barrels16",
+            "worst_ring", "lifecycle");
+    private static final String SCENE_FILTER = System.getProperty("alexsbutchery.smoketest.perfScenes",
+            System.getenv().getOrDefault("ALEXS_BUTCHERY_PERF_SCENES", "all"));
     private static final com.sun.management.ThreadMXBean THREADS = (com.sun.management.ThreadMXBean) ManagementFactory.getThreadMXBean();
 
     private static final Map<String, Object> results = new LinkedHashMap<>();
@@ -78,7 +92,6 @@ public final class PerfBench {
     private static int worldTicks;
     private static boolean begun;
     private static BlockPos base;
-    private static int arenas;
 
     // The case being measured.
     private static Case current;
@@ -92,6 +105,26 @@ public final class PerfBench {
     private static Runnable afterWait;
     /** Server work the next step must not overlap: its lock and CPU would leak into the following case's frames. */
     private static java.util.concurrent.CompletableFuture<?> pending;
+    private static long pendingDeadline;
+    private static String pendingDescription;
+    private static Runnable afterPending;
+    /** Client-side arrival or synchronization condition that must become true before the plan may continue. */
+    private static BooleanSupplier readiness;
+    private static Supplier<String> readinessDetail;
+    private static long readinessDeadline;
+    private static String readinessDescription;
+    private static Runnable afterReadiness;
+
+    private static final List<Map<String, Object>> arenaSync = new ArrayList<>();
+    private static final ThreadLocal<StageCapture> STAGING = new ThreadLocal<>();
+
+    private record ExpectedBlock(BlockPos pos, BlockState state, boolean blockEntity) {}
+
+    private static final class StageCapture {
+        final List<ExpectedBlock> carcasses = new ArrayList<>();
+        final List<ExpectedBlock> representatives = new ArrayList<>();
+        int itemEntities;
+    }
 
     /** One measured camera: where the eye is, what it looks at, and per-tick work (mining, target changes). */
     private record Case(String name, Vec3 eye, float yaw, float pitch, boolean survival, BlockPos expected,
@@ -122,8 +155,32 @@ public final class PerfBench {
             }
             if (mc.screen != null) mc.setScreen(null);
             if (pending != null) {
-                if (!pending.isDone()) return;
+                if (!pending.isDone()) {
+                    if (System.nanoTime() >= pendingDeadline)
+                        throw new IllegalStateException("Timed out waiting for " + pendingDescription);
+                    return;
+                }
+                pending.join();
+                Runnable next = afterPending;
                 pending = null;
+                pendingDescription = null;
+                afterPending = null;
+                if (next != null) next.run();
+                return;
+            }
+            if (readiness != null) {
+                if (readiness.getAsBoolean()) {
+                    Runnable next = afterReadiness;
+                    readiness = null;
+                    readinessDetail = null;
+                    readinessDescription = null;
+                    afterReadiness = null;
+                    next.run();
+                } else if (System.nanoTime() >= readinessDeadline) {
+                    String detail = readinessDetail == null ? "not ready" : readinessDetail.get();
+                    throw new IllegalStateException("Timed out waiting for " + readinessDescription + ": " + detail);
+                }
+                return;
             }
             if (afterWait != null) {
                 if (System.nanoTime() >= waitUntil) {
@@ -200,56 +257,263 @@ public final class PerfBench {
                 "framerate_limit", "unlimited", "gl_renderer", com.mojang.blaze3d.platform.GlUtil.getRenderer(),
                 "cpu", com.mojang.blaze3d.platform.GlUtil.getCpuInfo(), "java", System.getProperty("java.version")));
         results.put("cases", cases);
+        results.put("arena_sync", arenaSync);
         buildPlan(mc);
     }
 
     // --- the plan ---------------------------------------------------------------------------------------------
 
     private static void buildPlan(Minecraft mc) {
+        List<String> selectedGroups = selectedSceneGroups();
+        Set<String> selected = new LinkedHashSet<>(selectedGroups);
+        results.put("scene_filter", SCENE_FILTER);
+        results.put("selected_scene_groups", selectedGroups);
+        results.put("arena_layout", Map.ofEntries(Map.entry("empty", 1), Map.entry("items32", 2),
+                Map.entry("laviathan", 3), Map.entry("void_worm", 4), Map.entry("centipede", 5),
+                Map.entry("farseer", 6), Map.entry("mixed16", 7), Map.entry("dense64", 8),
+                Map.entry("barrels16", 9), Map.entry("worst_ring", 10), Map.entry("after_world_switch", 21)));
         // Empty arena: the frame-time floor and a plain block target.
-        plan.add(() -> arena(mc, (level, centre) -> {}, centre -> List.of(
+        if (selected.contains("empty")) plan.add(() -> arena(mc, 1, (level, centre) -> {}, centre -> List.of(
                 () -> lookAway("empty/look_away", centre),
                 () -> blockTarget("empty/block_target", centre))));
-        plan.add(() -> coldBuilds(mc));
-        for (String id : NAMED) plan.add(() -> arena(mc, (level, centre) -> place(level, centre, carcass(id, 0, Direction.NORTH), null),
-                centre -> named(mc, id, centre)));
-        plan.add(() -> arena(mc, PerfBench::mixed16, centre -> List.of(
+        if (selected.contains("cold")) plan.add(() -> coldBuilds(mc));
+        if (selected.contains("presentation")) plan.add(() -> presentationCosts(mc));
+        if (selected.contains("items32")) plan.add(() -> arena(mc, 2, PerfBench::itemPile, centre -> List.of(
+                () -> overview("items32/view_all", centre, 18))));
+        for (int i = 0; i < NAMED.length; i++) {
+            String id = NAMED[i];
+            int arena = i + 3;
+            if (selected.contains(id)) plan.add(() -> arena(mc, arena,
+                    (level, centre) -> place(level, centre, carcass(id, 0, Direction.NORTH), null),
+                    centre -> named(mc, id, centre)));
+        }
+        if (selected.contains("mixed16")) plan.add(() -> arena(mc, 7, PerfBench::mixed16, centre -> List.of(
                 () -> lookAway("mixed16/look_away", centre),
                 () -> overview("mixed16/view_all", centre, 22),
                 () -> hover("mixed16/hover", centre),
                 () -> floorTarget("mixed16/same_view_floor_target", centre))));
-        plan.add(() -> arena(mc, PerfBench::dense64, centre -> List.of(
+        if (selected.contains("dense64")) plan.add(() -> arena(mc, 8, PerfBench::dense64, centre -> List.of(
                 () -> overview("dense64/view_all", centre, 20),
                 () -> hover("dense64/hover", centre))));
-        plan.add(() -> arena(mc, (level, centre) -> { mixed16(level, centre); barrels(level, centre); }, centre -> List.of(
+        if (selected.contains("barrels16")) plan.add(() -> arena(mc, 9,
+                (level, centre) -> { mixed16(level, centre); barrels(level, centre); }, centre -> List.of(
                 () -> lookAway("barrels16/look_away", centre),
                 () -> hover("barrels16/hover", centre))));
-        plan.add(() -> arena(mc, PerfBench::worstRing, centre -> List.of(() -> rapid(centre))));
-        plan.add(() -> lifecycle(mc));
+        if (selected.contains("worst_ring"))
+            plan.add(() -> arena(mc, 10, PerfBench::worstRing, centre -> List.of(() -> rapid(centre))));
+        if (selected.contains("lifecycle")) plan.add(() -> lifecycle(mc));
+        if (plan.isEmpty()) throw new IllegalArgumentException("PerfBench scene filter selected no work: " + SCENE_FILTER);
+    }
+
+    private static List<String> selectedSceneGroups() {
+        String requested = SCENE_FILTER == null ? "all" : SCENE_FILTER.trim();
+        if (requested.isEmpty() || requested.equalsIgnoreCase("all")) return SCENE_GROUPS;
+        LinkedHashSet<String> selected = new LinkedHashSet<>();
+        for (String token : requested.split("[,\\s]+")) {
+            if (token.equalsIgnoreCase("remaining")) selected.addAll(REMAINING_SCENE_GROUPS);
+            else if (token.equalsIgnoreCase("named")) selected.addAll(List.of(NAMED));
+            else if (SCENE_GROUPS.contains(token)) selected.add(token);
+            else throw new IllegalArgumentException("Unknown PerfBench scene group '" + token + "'; expected one of "
+                        + SCENE_GROUPS + ", named, remaining, or all");
+        }
+        return List.copyOf(selected);
     }
 
     private interface Stage { void stage(ServerLevel level, BlockPos centre); }
 
-    /** A fresh arena 512 blocks along x: stage it on the server, wait for chunks, then queue its cases. */
-    private static void arena(Minecraft mc, Stage stage, java.util.function.Function<BlockPos, List<java.util.function.Supplier<Case>>> cameras) {
-        BlockPos centre = base.offset(512 * ++arenas, 0, 0);
+    /**
+     * A fresh arena 512 blocks along x. The server teleport, client arrival/chunk load, server staging and client receipt
+     * are separate bounded barriers: a wall-clock delay alone can race an in-flight pre-stage chunk snapshot in a pack.
+     */
+    private static void arena(Minecraft mc, int arena, Stage stage,
+                              java.util.function.Function<BlockPos, List<java.util.function.Supplier<Case>>> cameras) {
+        BlockPos centre = base.offset(512 * arena, 0, 0);
         var server = mc.getSingleplayerServer();
-        server.execute(() -> {
+        Map<String, Object> evidence = new LinkedHashMap<>();
+        evidence.put("arena", arena);
+        evidence.put("centre", List.of(centre.getX(), centre.getY(), centre.getZ()));
+        evidence.put("status", "server_teleport");
+        arenaSync.add(evidence);
+        long teleportStart = System.nanoTime();
+        awaitFuture(server.submit(() -> {
             ServerPlayer player = server.getPlayerList().getPlayers().get(0);
             player.setGameMode(GameType.CREATIVE);
+            player.getAbilities().mayfly = true;
+            player.getAbilities().flying = true;
+            player.getAbilities().invulnerable = true;
+            player.onUpdateAbilities();
             player.teleportTo(server.overworld(), centre.getX() + .5, centre.getY() + 8, centre.getZ() - 12, 0, 20);
+        }), "arena " + arena + " server teleport", 30, () -> {
+            evidence.put("server_teleport_ms", elapsedMs(teleportStart));
+            evidence.put("status", "client_arrival");
+            long arrivalStart = System.nanoTime();
+            awaitCondition("arena " + arena + " client arrival and chunks", 60,
+                    () -> clientArrived(mc, centre), () -> arrivalStatus(mc, centre), () -> {
+                        evidence.put("client_arrival_ms", elapsedMs(arrivalStart));
+                        evidence.put("arrival_chunks", loadedArenaChunks(mc, centre));
+                        evidence.put("arrival_chunk_check", "FULL_non_null_coordinate_match");
+                        stageArena(mc, server, stage, cameras, centre, arena, evidence);
+                    });
         });
-        wait(4, () -> {
-            pending = server.submit(() -> stage.stage(server.overworld(), centre));
-            wait(4, () -> {
-                // Cameras resolve when their case starts, once the client has the staged carcasses.
-                var list = cameras.apply(centre);
-                for (int i = list.size() - 1; i >= 0; i--) {
-                    var c = list.get(i);
-                    plan.add(0, () -> startCase(mc, c.get()));
+    }
+
+    private static void stageArena(Minecraft mc, net.minecraft.client.server.IntegratedServer server, Stage stage,
+                                   java.util.function.Function<BlockPos, List<java.util.function.Supplier<Case>>> cameras,
+                                   BlockPos centre, int arena, Map<String, Object> evidence) {
+        StageCapture capture = new StageCapture();
+        evidence.put("status", "server_stage");
+        long stageStart = System.nanoTime();
+        awaitFuture(server.submit(() -> {
+            STAGING.set(capture);
+            try {
+                stage.stage(server.overworld(), centre);
+                assertServerStage(server.overworld(), centre, capture);
+            } finally {
+                STAGING.remove();
+            }
+        }), "arena " + arena + " server stage", 60, () -> {
+            evidence.put("server_stage_ms", elapsedMs(stageStart));
+            evidence.put("expected_carcasses", capture.carcasses.size());
+            evidence.put("expected_representatives", capture.representatives.size());
+            evidence.put("expected_item_entities", capture.itemEntities);
+            evidence.put("status", "client_stage_grace");
+            evidence.put("resync_attempted", false);
+            long visibilityStart = System.nanoTime();
+            // Give normal tracked updates a brief chance to arrive. A missing block after this point is explicitly
+            // resent from the unchanged authoritative state; no server block is rewritten to make the test pass.
+            wait(2, () -> observeOrResyncArena(mc, server, cameras, centre, arena, capture, evidence, visibilityStart));
+        });
+    }
+
+    private static void observeOrResyncArena(Minecraft mc, net.minecraft.client.server.IntegratedServer server,
+                                             java.util.function.Function<BlockPos, List<java.util.function.Supplier<Case>>> cameras,
+                                             BlockPos centre, int arena, StageCapture capture,
+                                             Map<String, Object> evidence, long visibilityStart) {
+        String observation = sceneStatus(mc, centre, capture);
+        evidence.put("initial_client_stage_observation", observation);
+        if (observation.equals("ready")) {
+            queueArenaCases(mc, cameras, centre, capture, evidence, visibilityStart);
+            return;
+        }
+
+        evidence.put("resync_attempted", true);
+        evidence.put("status", "server_state_resync");
+        int[] packetCounts = new int[2];
+        awaitFuture(server.submit(() -> {
+            ServerLevel level = server.overworld();
+            assertServerStage(level, centre, capture);
+            ServerPlayer player = server.getPlayerList().getPlayers().get(0);
+            if (player.level() != level || player.connection == null)
+                throw new IllegalStateException("Arena " + arena + " player is not connected to the authoritative level");
+            for (ExpectedBlock expected : allExpected(capture)) {
+                BlockState actual = level.getBlockState(expected.pos());
+                player.connection.send(new ClientboundBlockUpdatePacket(expected.pos(), actual));
+                packetCounts[0]++;
+                if (expected.blockEntity()) {
+                    var blockEntity = level.getBlockEntity(expected.pos());
+                    if (blockEntity == null)
+                        throw new IllegalStateException("Server block entity disappeared before resync at " + expected.pos());
+                    player.connection.send(ClientboundBlockEntityDataPacket.create(blockEntity));
+                    packetCounts[1]++;
                 }
-            });
+            }
+        }), "arena " + arena + " authoritative block resync", 30, () -> {
+            evidence.put("resync_block_packets", packetCounts[0]);
+            evidence.put("resync_block_entity_packets", packetCounts[1]);
+            evidence.put("status", "client_stage_visibility");
+            awaitCondition("arena " + arena + " staged scene visibility after authoritative resync", 60,
+                    () -> sceneStatus(mc, centre, capture).equals("ready"),
+                    () -> sceneStatus(mc, centre, capture),
+                    () -> queueArenaCases(mc, cameras, centre, capture, evidence, visibilityStart));
         });
+    }
+
+    private static void queueArenaCases(Minecraft mc,
+                                        java.util.function.Function<BlockPos, List<java.util.function.Supplier<Case>>> cameras,
+                                        BlockPos centre, StageCapture capture, Map<String, Object> evidence,
+                                        long visibilityStart) {
+        evidence.put("client_stage_visibility_ms", elapsedMs(visibilityStart));
+        evidence.put("client_item_entities", clientItemCount(mc, centre));
+        evidence.put("final_client_stage_observation", sceneStatus(mc, centre, capture));
+        evidence.put("status", "ready");
+        // Camera suppliers resolve only after every captured carcass and representative reached the client.
+        var list = cameras.apply(centre);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            var c = list.get(i);
+            plan.add(0, () -> startCase(mc, c.get()));
+        }
+    }
+
+    private static boolean clientArrived(Minecraft mc, BlockPos centre) {
+        if (mc.level == null || mc.player == null || !mc.level.dimension().equals(net.minecraft.world.level.Level.OVERWORLD)) return false;
+        double dx = mc.player.getX() - (centre.getX() + .5);
+        double dy = mc.player.getY() - (centre.getY() + 8);
+        double dz = mc.player.getZ() - (centre.getZ() - 12);
+        return dx * dx + dy * dy + dz * dz < 4 && loadedArenaChunks(mc, centre) == 49;
+    }
+
+    /** Seven by seven real FULL chunks covers the widest stage (the 80x80 barrel square) before it is modified. */
+    private static int loadedArenaChunks(Minecraft mc, BlockPos centre) {
+        if (mc.level == null) return 0;
+        int loaded = 0;
+        for (int x = -48; x <= 48; x += 16) for (int z = -48; z <= 48; z += 16) {
+            int chunkX = (centre.getX() + x) >> 4;
+            int chunkZ = (centre.getZ() + z) >> 4;
+            // ClientLevel.hasChunk(int, int) intentionally always returns true. Query the cache without its fallback
+            // empty chunk and verify the coordinate because storage slots are reused as the view centre moves.
+            var chunk = mc.level.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
+            if (chunk != null && chunk.getPos().x == chunkX && chunk.getPos().z == chunkZ) loaded++;
+        }
+        return loaded;
+    }
+
+    private static String arrivalStatus(Minecraft mc, BlockPos centre) {
+        if (mc.level == null || mc.player == null) return "no client level/player";
+        return "player=" + mc.player.position() + ", target=" + centre + ", loaded_chunks=" + loadedArenaChunks(mc, centre) + "/49";
+    }
+
+    private static void assertServerStage(ServerLevel level, BlockPos centre, StageCapture capture) {
+        for (ExpectedBlock expected : allExpected(capture)) {
+            BlockState actual = level.getBlockState(expected.pos());
+            if (actual != expected.state())
+                throw new IllegalStateException("Server stage changed " + expected.pos() + ": expected " + expected.state() + ", got " + actual);
+            if (expected.blockEntity() && level.getBlockEntity(expected.pos()) == null)
+                throw new IllegalStateException("Server stage has no block entity at " + expected.pos() + " for " + actual);
+        }
+        int items = serverItemCount(level, centre);
+        if (items < capture.itemEntities)
+            throw new IllegalStateException("Server stage has " + items + "/" + capture.itemEntities + " item entities at " + centre);
+    }
+
+    private static String sceneStatus(Minecraft mc, BlockPos centre, StageCapture capture) {
+        if (mc.level == null) return "no client level";
+        for (ExpectedBlock expected : allExpected(capture)) {
+            BlockState actual = mc.level.getBlockState(expected.pos());
+            if (actual != expected.state()) return "state " + expected.pos() + " expected " + expected.state() + ", got " + actual;
+            if (expected.blockEntity() && mc.level.getBlockEntity(expected.pos()) == null)
+                return "missing block entity at " + expected.pos() + " for " + actual;
+        }
+        int items = clientItemCount(mc, centre);
+        if (items < capture.itemEntities) return "item entities " + items + "/" + capture.itemEntities;
+        return "ready";
+    }
+
+    private static List<ExpectedBlock> allExpected(StageCapture capture) {
+        List<ExpectedBlock> all = new ArrayList<>(capture.carcasses.size() + capture.representatives.size());
+        all.addAll(capture.carcasses);
+        all.addAll(capture.representatives);
+        return all;
+    }
+
+    private static int clientItemCount(Minecraft mc, BlockPos centre) {
+        if (mc.level == null) return 0;
+        AABB area = new AABB(centre).inflate(12, 4, 12);
+        return mc.level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, area).size();
+    }
+
+    private static int serverItemCount(ServerLevel level, BlockPos centre) {
+        AABB area = new AABB(centre).inflate(12, 4, 12);
+        return level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, area).size();
     }
 
     private static List<java.util.function.Supplier<Case>> named(Minecraft mc, String id, BlockPos centre) {
@@ -276,6 +540,11 @@ public final class PerfBench {
     private static void place(ServerLevel level, BlockPos pos, BlockState state, CompoundTag data) {
         level.setBlockAndUpdate(pos, state);
         if (data != null && level.getBlockEntity(pos) instanceof com.otectus.alexsbutchery.block.entity.CarcassBlockEntity be) be.setMobData(data);
+        BlockState actual = level.getBlockState(pos);
+        if (actual != state || level.getBlockEntity(pos) == null)
+            throw new IllegalStateException("Could not stage carcass at " + pos + ": expected " + state + ", got " + actual);
+        StageCapture capture = STAGING.get();
+        if (capture != null) capture.carcasses.add(new ExpectedBlock(pos.immutable(), state, true));
     }
 
     private static void mixed16(ServerLevel level, BlockPos centre) {
@@ -315,6 +584,12 @@ public final class PerfBench {
             count++;
         }
         results.put("barrels_block_entities", count);
+        StageCapture capture = STAGING.get();
+        if (capture != null) {
+            for (BlockPos pos : List.of(centre.offset(-32, -3, -32), centre.offset(0, -3, 0), centre.offset(32, -3, 32))) {
+                capture.representatives.add(new ExpectedBlock(pos.immutable(), Blocks.BARREL.defaultBlockState(), true));
+            }
+        }
     }
 
     private static final String[][] WORST = {{"anaconda", "skeleton", "1"}, {"cachalot_whale", "skeleton", "1"},
@@ -365,7 +640,12 @@ public final class PerfBench {
         var level = Minecraft.getInstance().level;
         BlockState state = level.getBlockState(pos);
         List<AABB> boxes = state.getBlock() instanceof AbstractCarcassBlock ? CarcassBounds.boxes(state, level, pos) : List.of();
-        if (boxes.isEmpty()) return lookAway(name + "_missing", pos);
+        if (boxes.isEmpty()) {
+            // Preserve the historical mine fallback as a reported case distinction. Every ordinary hover is strict:
+            // arena synchronization already proved it existed, so losing it is a failed benchmark, not a look-away case.
+            if (name.endsWith("/mine")) return lookAway(name + "_missing", pos);
+            throw new IllegalStateException("Staged carcass missing before " + name + " at " + pos + ": " + state);
+        }
         AABB box = boxes.stream().max(Comparator.comparingDouble(b -> b.getXsize() * b.getYsize() * b.getZsize())).orElseThrow();
         Vec3 target = box.getCenter().add(Vec3.atLowerCornerOf(pos));
         Vec3 eye = new Vec3(target.x, target.y + .9, pos.getZ() + box.minZ - 2.6);
@@ -470,6 +750,8 @@ public final class PerfBench {
         result.put("p95_ms_mean", mean(p95));
         result.put("p99_ms_mean", mean(sampleStats.stream().map(s -> (Double) s.get("p99_ms")).toList()));
         result.put("fps_mean", mean(sampleStats.stream().map(s -> (Double) s.get("fps")).toList()));
+        result.put("framebuffer_width", mc.getWindow().getWidth());
+        result.put("framebuffer_height", mc.getWindow().getHeight());
         boolean hit = mc.hitResult instanceof BlockHitResult block && mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK
                 && c.expected() != null && block.getBlockPos().equals(c.expected());
         if (c.expected() != null) result.put("crosshair_on_expected", hit);
@@ -526,11 +808,78 @@ public final class PerfBench {
         return duration / 1E3 / repeats;
     }
 
+    private static void itemPile(ServerLevel level, BlockPos centre) {
+        String[] ids = {"moose", "elephant", "catfish", "anaconda", "centipede", "farseer", "terrapin", "jerboa"};
+        for (int i = 0; i < 32; i++) {
+            CompoundTag tag = new CompoundTag();
+            tag.putInt("CatfishSize", i % 3);
+            tag.putBoolean("Antlered", i % 2 == 0);
+            var item = new net.minecraft.world.entity.item.ItemEntity(level, centre.getX() + (i % 8 - 4) * 2.0,
+                    centre.getY() + .1, centre.getZ() + (i / 8 - 2) * 3.0, ItemPresentationChecks.stack(ids[i % ids.length], tag));
+            item.setNoGravity(true);
+            item.setDeltaMovement(Vec3.ZERO);
+            item.setUnlimitedLifetime();
+            item.setNeverPickUp();
+            if (!level.addFreshEntity(item)) throw new IllegalStateException("Could not stage item entity " + i + " at " + centre);
+            StageCapture capture = STAGING.get();
+            if (capture != null) capture.itemEntities++;
+        }
+    }
+
+    private static void presentationCosts(Minecraft mc) {
+        Map<String, Object> costs = new LinkedHashMap<>();
+        for (String id : new String[]{"moose", "catfish", "anaconda", "void_worm"}) {
+            var stack = ItemPresentationChecks.stack(id, new CompoundTag());
+            var visual = com.otectus.alexsbutchery.client.render.CarcassVisualState.from(stack);
+            var buffers = mc.renderBuffers().bufferSource();
+            long start = System.nanoTime();
+            com.otectus.alexsbutchery.client.render.CarcassPresentation.metrics(visual, "ground", false);
+            double cold = (System.nanoTime() - start) / 1E6;
+            long[] allocated = {0};
+            double warm = time(40, () -> {
+                var pose = new com.mojang.blaze3d.vertex.PoseStack();
+                mc.getItemRenderer().renderStatic(stack, net.minecraft.world.item.ItemDisplayContext.GROUND, 15728880, 0,
+                        pose, buffers, mc.level, 0);
+                buffers.endBatch();
+            }, allocated);
+            long itemBytes = allocated[0];
+            double carry = time(40, () -> {
+                com.otectus.alexsbutchery.client.render.CarcassPresentation.renderCarry(visual, false,
+                        new com.mojang.blaze3d.vertex.PoseStack(), buffers, 15728880, 0);
+                buffers.endBatch();
+            }, allocated);
+            long carryBytes = allocated[0];
+            double before = time(40, () -> {
+                ItemReviewScreen.legacy(stack, net.minecraft.world.item.ItemDisplayContext.GROUND,
+                        new com.mojang.blaze3d.vertex.PoseStack(), buffers);
+                buffers.endBatch();
+            }, allocated);
+            costs.put(id, Map.of("cold_metrics_ms", cold, "item_us", warm, "item_bytes", itemBytes,
+                    "carry_us", carry, "carry_bytes", carryBytes, "legacy_source_item_us", before, "legacy_source_item_bytes", allocated[0]));
+        }
+        results.put("presentation", costs);
+        var carried = java.util.stream.Stream.of("moose", "catfish", "anaconda", "void_worm")
+                .map(id -> com.otectus.alexsbutchery.client.render.CarcassVisualState.from(
+                        ItemPresentationChecks.stack(id, new CompoundTag()))).toList();
+        var buffers = mc.renderBuffers().bufferSource();
+        long[] allocated = {0};
+        double batch = time(40, () -> {
+            for (int i = 0; i < carried.size(); i++) {
+                var pose = new com.mojang.blaze3d.vertex.PoseStack();
+                pose.translate((i - 1.5) * 4, 0, -8);
+                com.otectus.alexsbutchery.client.render.CarcassPresentation.renderCarry(carried.get(i), false,
+                        pose, buffers, 15728880, 0);
+            }
+            buffers.endBatch();
+        }, allocated);
+        results.put("carry_batch", Map.of("count", carried.size(), "render_us", batch, "bytes", allocated[0]));
+    }
+
     /** First-use costs for never-seen states: shape construction and outline extraction, on the server thread. */
     private static void coldBuilds(Minecraft mc) {
         var server = mc.getSingleplayerServer();
         BlockPos at = base.offset(0, 0, 40);
-        pending = server.submit(() -> {
+        awaitFuture(server.submit(() -> {
             ServerLevel level = server.overworld();
             Map<String, Object> cold = new LinkedHashMap<>();
             // Load the bounds file once, outside the timed builds.
@@ -555,15 +904,16 @@ public final class PerfBench {
             }
             level.removeBlock(at, false);
             results.put("cold", cold);
-        });
-        wait(2, () -> {});
+        }), "cold shape builds", 60, () -> wait(2, () -> {}));
     }
 
     /** Resource reload and a world switch: costs afterwards and whether the old level can be collected. */
     private static void lifecycle(Minecraft mc) {
         long start = System.nanoTime();
-        mc.reloadResourcePacks().thenRun(() -> results.put("resource_reload_ms", (System.nanoTime() - start) / 1E6));
-        wait(15, () -> {
+        results.put("resource_reload_completed", false);
+        awaitFuture(mc.reloadResourcePacks(), "resource-pack reload", 180, () -> {
+            results.put("resource_reload_ms", elapsedMs(start));
+            results.put("resource_reload_completed", true);
             WeakReference<ClientLevel> oldLevel = new WeakReference<>(mc.level);
             String world = mc.getSingleplayerServer().getWorldData().getLevelName();
             String folder = mc.getSingleplayerServer().getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT)
@@ -578,8 +928,8 @@ public final class PerfBench {
                 for (int i = 0; i < 6; i++) { System.gc(); try { Thread.sleep(50); } catch (InterruptedException ignored) {} }
                 results.put("previous_client_level_collected", oldLevel.get() == null);
                 base = mc.getSingleplayerServer().getPlayerList().getPlayers().get(0).blockPosition();
-                arenas = 20;
-                plan.add(() -> arena(mc, (level, centre) -> place(level, centre, carcass("laviathan", 0, Direction.NORTH), null),
+                plan.add(() -> arena(mc, 21,
+                        (level, centre) -> place(level, centre, carcass("laviathan", 0, Direction.NORTH), null),
                         centre -> List.of(() -> hover("after_world_switch/laviathan_hover", centre))));
             };
         });
@@ -590,6 +940,29 @@ public final class PerfBench {
     private static void wait(double seconds, Runnable then) {
         waitUntil = System.nanoTime() + (long) (seconds * 1E9);
         afterWait = then;
+    }
+
+    private static void awaitFuture(java.util.concurrent.CompletableFuture<?> future, String description,
+                                    double timeoutSeconds, Runnable then) {
+        if (pending != null) throw new IllegalStateException("Already waiting for " + pendingDescription);
+        pending = future;
+        pendingDescription = description;
+        pendingDeadline = System.nanoTime() + (long) (timeoutSeconds * 1E9);
+        afterPending = then;
+    }
+
+    private static void awaitCondition(String description, double timeoutSeconds, BooleanSupplier condition,
+                                       Supplier<String> detail, Runnable then) {
+        if (readiness != null) throw new IllegalStateException("Already waiting for " + readinessDescription);
+        readiness = condition;
+        readinessDetail = detail;
+        readinessDescription = description;
+        readinessDeadline = System.nanoTime() + (long) (timeoutSeconds * 1E9);
+        afterReadiness = then;
+    }
+
+    private static double elapsedMs(long start) {
+        return (System.nanoTime() - start) / 1E6;
     }
 
     private static Map<String, Object> stats(List<Long> nanos) {

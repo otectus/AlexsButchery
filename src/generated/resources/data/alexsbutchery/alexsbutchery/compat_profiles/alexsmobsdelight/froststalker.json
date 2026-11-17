@@ -1,0 +1,18 @@
+{
+  "entity": "alexsmobs:froststalker",
+  "groups": {
+    "meat": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:raw_froststalker_meat",
+        "alexsmobsdelight:cooked_froststalker_meat"
+      ],
+      "item": "alexsmobsdelight:raw_froststalker_meat"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

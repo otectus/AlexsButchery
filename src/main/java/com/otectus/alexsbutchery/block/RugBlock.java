@@ -2,8 +2,10 @@ package com.otectus.alexsbutchery.block;
 
 import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
 import com.otectus.alexsbutchery.def.MobDef;
+import com.otectus.alexsbutchery.item.TrophyData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
@@ -17,6 +19,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -26,10 +29,13 @@ import org.jetbrains.annotations.Nullable;
 /**
  * A pelt rug, like Butchery's bear, goat and panda rugs: the flat pelt is a block model that spreads over the
  * neighbouring blocks, the head is the mob's own head model drawn by the block entity renderer at the front edge.
- * Walk-through, a pixel thick, and it dampens vibrations like a carpet.
+ * Walk-through, a pixel thick, and it dampens vibrations like a carpet. A rug made from a white tiger's head lies with the
+ * white pelt ({@link #COAT}, from {@link MobDef#rugCoat()}); rugs without a recorded coat keep the default pelt.
  */
 public class RugBlock extends Block implements EntityBlock, MobBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
+    /** The mob's coat-variant pelt; only set for rugs whose mob has one and whose snapshot records it. */
+    public static final BooleanProperty COAT = BooleanProperty.create("coat_variant");
     private static final VoxelShape SHAPE = Block.box(0, 0, 0, 16, 1, 16);
 
     private final MobDef def;
@@ -38,7 +44,7 @@ public class RugBlock extends Block implements EntityBlock, MobBlock {
         super(Properties.of().sound(SoundType.WOOL).strength(0.5F).noOcclusion().noCollission()
                 .isRedstoneConductor((state, level, pos) -> false));
         this.def = def;
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(COAT, false));
     }
 
     @Override
@@ -48,7 +54,7 @@ public class RugBlock extends Block implements EntityBlock, MobBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING);
+        builder.add(FACING, COAT);
     }
 
     @Override
@@ -80,7 +86,14 @@ public class RugBlock extends Block implements EntityBlock, MobBlock {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite())
+                .setValue(COAT, coat(def, TrophyData.appearance(context.getItemInHand())));
+    }
+
+    /** Whether a snapshot shows the mob's coat-variant pelt (a white tiger); false without one. */
+    public static boolean coat(MobDef def, @Nullable CompoundTag mobData) {
+        MobDef.RugCoat coat = def.rugCoat();
+        return coat != null && mobData != null && mobData.getBoolean(coat.tag());
     }
 
     @Override

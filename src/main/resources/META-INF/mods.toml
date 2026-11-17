@@ -8,7 +8,7 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}"
 description='''
-Butchery for every Alex's Mobs creature: carcasses, hanging, bleeding, skinning, cuts, heads and trophies, using Butchery's own tools and stations.
+Butchery for Alex's Mobs: carcasses for the 82 creatures with something to butcher, hanging, bleeding, skinning, cuts, heads, trophies and rugs, using Butchery's own tools and stations. Jade shows the next step for these carcasses and Butchery's own. With Alex's Mobs Delight or Alex's Delight installed, carcasses yield that addon's meats.
 '''
 
 [[dependencies.${mod_id}]]
@@ -62,6 +62,13 @@ Butchery for every Alex's Mobs creature: carcasses, hanging, bleeding, skinning,
 
 [[dependencies.${mod_id}]]
     modId="alexsmobsdelight"
+    mandatory=false
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="alexsdelight"
     mandatory=false
     versionRange="[0,)"
     ordering="AFTER"

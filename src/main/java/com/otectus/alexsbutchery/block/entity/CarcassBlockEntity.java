@@ -1,11 +1,11 @@
 package com.otectus.alexsbutchery.block.entity;
 
-import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
 import com.otectus.alexsbutchery.block.CarcassBounds;
 import com.otectus.alexsbutchery.block.CarcassIndex;
 import com.otectus.alexsbutchery.block.MobBlock;
 import com.otectus.alexsbutchery.butcher.Acid;
 import com.otectus.alexsbutchery.butcher.Bleeding;
+import com.otectus.alexsbutchery.butcher.PortableCarcass;
 import com.otectus.alexsbutchery.def.MobDef;
 import com.otectus.alexsbutchery.registry.ModBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -25,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
  * Butchery's work queue, so it survives saving and reloading.
  */
 public class CarcassBlockEntity extends BlockEntity {
-    public static final String MOB_DATA = "MobData";
+    public static final String MOB_DATA = PortableCarcass.MOB_DATA;
 
     private CompoundTag mobData = new CompoundTag();
     private boolean bleeding;
@@ -51,6 +51,7 @@ public class CarcassBlockEntity extends BlockEntity {
         if (level != null) CarcassIndex.remove(level, worldPosition);
     }
 
+    /** Acid takes precedence: the portable decoder never permits a carcass to bleed and dissolve at once. */
     public static void serverTick(Level level, BlockPos pos, BlockState state, CarcassBlockEntity carcass) {
         if (carcass.acidTicks > 0) Acid.tick(level, pos, state, carcass);
         else if (carcass.bleeding) Bleeding.tick(level, pos, state, carcass);
@@ -82,12 +83,17 @@ public class CarcassBlockEntity extends BlockEntity {
     }
 
     public void startBleeding() {
+        if (bleeding) return;
         bleeding = true;
         bleedTicks = 0;
         fills = 0;
-        // Butchery's own hint overlays read these flags from the block entity's persistent data.
-        getPersistentData().putBoolean("isBleeding", true);
+        syncFlags();
         sync();
+    }
+
+    /** Fills still owed by this carcass's blood class: what timed or instant bleeding may still emit. */
+    public int remainingFills() {
+        return Math.max(0, def().blood().fills - fills);
     }
 
     /** Advances the bleed clock by one tick; returns true when a fill is due. */
@@ -130,23 +136,46 @@ public class CarcassBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        if (!mobData.isEmpty()) tag.put(MOB_DATA, mobData.copy());
-        if (bleeding) {
-            tag.putBoolean("Bleeding", true);
-            tag.putInt("BleedTicks", bleedTicks);
-            tag.putInt("Fills", fills);
-        }
-        if (acidTicks > 0) tag.putInt("AcidTicks", acidTicks);
+        PortableCarcass.save(this, tag);
     }
 
+    /**
+     * Also how a carried carcass resumes: its item keeps these fields ({@code ModBlockLoot}), and placing or hanging it
+     * loads them here, so a carcass picked up mid-way never starts a fresh, fully paid process again.
+     */
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        mobData = tag.contains(MOB_DATA) ? tag.getCompound(MOB_DATA).copy() : new CompoundTag();
-        bleeding = tag.getBoolean("Bleeding");
-        bleedTicks = tag.getInt("BleedTicks");
-        fills = tag.getInt("Fills");
-        acidTicks = tag.getInt("AcidTicks");
+        restorePortable(PortableCarcass.decode(tag, getBlockState(), def()), false);
+    }
+
+    /**
+     * Rejects process state this block cannot have, wherever it came from (old saves, edited or carried items): only a
+     * fresh carcass of a bleeding mob bleeds, and never past its blood class; only a form acid can dissolve keeps an
+     * acid clock. A save holding both keeps the acid (which already won every tick) and drops the bleeding, so no blood
+     * is owed any more. All counters are bounded to what one carcass can legitimately produce.
+     */
+    public void restorePortable(PortableCarcass.Payload payload) {
+        restorePortable(payload, true);
+    }
+
+    private void restorePortable(PortableCarcass.Payload payload, boolean notify) {
+        mobData = payload.mobData().copy();
+        bleeding = payload.bleeding();
+        bleedTicks = payload.bleedTicks();
+        fills = payload.fills();
+        acidTicks = payload.acidTicks();
+        syncFlags();
+        if (notify) sync();
+    }
+
+    /** Butchery's own hint overlays read {@code isBleeding} from the block entity's persistent data. */
+    private void syncFlags() {
+        if (bleeding) getPersistentData().putBoolean("isBleeding", true);
+        else getPersistentData().remove("isBleeding");
+        if (getBlockState().getBlock() instanceof com.otectus.alexsbutchery.block.DrainedCarcassBlock)
+            getPersistentData().putBoolean("isDrained", true);
+        else getPersistentData().remove("isDrained");
     }
 
     @Override
@@ -162,14 +191,13 @@ public class CarcassBlockEntity extends BlockEntity {
 
     /**
      * Frustum culling for the renderer: the anatomy's own envelope (which the geometry review checks contains every
-     * rendered vertex) plus a block of slack, so a visible tail is drawn while its anchor is off screen.
+     * rendered vertex) plus a block of slack, so a visible tail or a whale's jaw is drawn while its anchor is off screen.
+     * Carcasses, skeletons, heads and trophies have exported anatomy; a rug's head lies on its own pelt.
      */
     @Override
     public AABB getRenderBoundingBox() {
-        if (level != null && getBlockState().getBlock() instanceof AbstractCarcassBlock)
+        if (level != null && CarcassBounds.selectable(getBlockState().getBlock()))
             return CarcassBounds.geometry(getBlockState(), level, worldPosition).envelope().move(worldPosition).inflate(1);
-        // Heads, trophies and rugs: a whale's or Void Worm's head reaches well past its block.
-        boolean big = getBlockState().getBlock() instanceof MobBlock mob && mob.def().floor();
-        return big ? new AABB(worldPosition).inflate(12, 8, 12) : new AABB(worldPosition).inflate(5, 7, 5);
+        return new AABB(worldPosition).inflate(2, 2, 2);
     }
 }

@@ -1,0 +1,25 @@
+{
+  "entity": "alexsmobs:terrapin",
+  "groups": {
+    "meat": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:raw_turtle_meat",
+        "alexsmobsdelight:cooked_turtle_meat"
+      ],
+      "item": "alexsmobsdelight:raw_turtle_meat"
+    },
+    "shell": {
+      "count_mode": "native_group",
+      "death_equivalents": [
+        "alexsmobsdelight:terrapin_shell"
+      ],
+      "item": "alexsmobsdelight:terrapin_shell"
+    }
+  },
+  "provider": "alexsmobsdelight",
+  "required_mods": [
+    "alexsmobsdelight"
+  ],
+  "schema_version": 1
+}

@@ -43,17 +43,37 @@ public final class CarcassModels {
      * texture, the renderer's own size factor and the mob's dimensions. Valid until the next {@link Handle#shape}.
      */
     public record Shape(EntityModel<LivingEntity> model, Map<String, ModelParts.Part> parts, ResourceLocation texture,
-                        float scale, float width, float height) {}
+                        float scale, float width, float height, Snapshot snapshot) {}
+
+    /** An immutable cache key, copied only when a handle applies a different appearance snapshot. */
+    public static final class Snapshot {
+        private final CompoundTag data;
+        private final int hash;
+
+        Snapshot(CompoundTag data) {
+            this.data = data.copy();
+            this.hash = this.data.hashCode();
+        }
+
+        private boolean matches(CompoundTag other) { return data.equals(other); }
+
+        @Override public boolean equals(Object other) {
+            return other instanceof Snapshot snapshot && data.equals(snapshot.data);
+        }
+
+        @Override public int hashCode() { return hash; }
+    }
 
     public static final class Handle {
         private final EntityType<?> type;
-        private final LivingEntity dummy;
+        private LivingEntity dummy;
         private final LivingEntityRenderer<LivingEntity, EntityModel<LivingEntity>> renderer;
         /** The dummy's own save data, restored before each snapshot so no look leaks from one carcass to the next. */
         private final CompoundTag defaults;
         private final Map<EntityModel<?>, Map<String, ModelParts.Part>> partsByModel = new IdentityHashMap<>();
-        @Nullable private CompoundTag applied;
         @Nullable private Shape shape;
+        private record Sample(Shape shape, LivingEntity dummy) {}
+        private final java.util.LinkedList<Sample> samples = new java.util.LinkedList<>();
 
         Handle(EntityType<?> type, LivingEntity dummy, LivingEntityRenderer<LivingEntity, EntityModel<LivingEntity>> renderer) {
             this.type = type;
@@ -73,15 +93,23 @@ public final class CarcassModels {
         /** The shape for this snapshot; the last one is reused while carcasses of the same look are drawn in a row. */
         public Shape shape(@Nullable CompoundTag mobData) {
             CompoundTag data = mobData == null ? NO_DATA : mobData;
-            if (shape != null && data.equals(applied)) return shape;
+            if (shape != null && shape.snapshot().matches(data)) return shape;
+            for (var sample : samples) if (sample.shape().snapshot().matches(data)) {
+                dummy = sample.dummy();
+                shape = sample.shape();
+                return shape;
+            }
+            // Each cached appearance gets an unticked private dummy, so alternating variants never deserialize NBT per frame.
+            if (shape != null && type.create(dummy.level()) instanceof LivingEntity next) dummy = next;
             read(defaults.copy().merge(data));
             dummy.refreshDimensions();
             float scale = rendererScale();
             EntityModel<LivingEntity> model = renderer.getModel();
             Map<String, ModelParts.Part> parts = partsByModel.computeIfAbsent(model, ModelParts::collect);
             ResourceLocation texture = StageTextures.appearance(dummy, renderer.getTextureLocation(dummy));
-            shape = new Shape(model, parts, texture, scale, dummy.getBbWidth(), dummy.getBbHeight());
-            applied = data.copy();
+            shape = new Shape(model, parts, texture, scale, dummy.getBbWidth(), dummy.getBbHeight(), new Snapshot(data));
+            if (samples.size() >= 16) samples.removeFirst();
+            samples.addLast(new Sample(shape, dummy));
             return shape;
         }
 
@@ -111,6 +139,7 @@ public final class CarcassModels {
 
         /** Puts the model in its resting pose for the dummy (no animation), the way the entity renderer would. */
         public void pose(Shape shape) {
+            for (var sample : samples) if (sample.shape() == shape) { dummy = sample.dummy(); break; }
             EntityModel<LivingEntity> model = shape.model();
             if (model instanceof com.github.alexthe666.citadel.client.model.AdvancedEntityModel<?> advanced) advanced.resetToDefaultPose();
             model.young = false;
@@ -139,18 +168,28 @@ public final class CarcassModels {
 
     private static final Map<ResourceLocation, Handle> CACHE = new HashMap<>();
     private static final Set<ResourceLocation> FAILED = new HashSet<>();
+    private static final java.util.List<Runnable> CLEAR_LISTENERS = new java.util.ArrayList<>();
     private static Level cachedLevel;
+
+    /** Optional render adapters register only once loaded; core code never links their classes. */
+    public static void addClearListener(Runnable listener) { CLEAR_LISTENERS.add(listener); }
 
     public static void init() {
         MinecraftForge.EVENT_BUS.addListener((ClientPlayerNetworkEvent.LoggingOut event) -> clear());
     }
 
     public static void clear() {
+        CLEAR_LISTENERS.forEach(Runnable::run);
         CACHE.clear();
         FAILED.clear();
+        CarcassPresentation.clear();
+        CarcassVisualState.clear();
+        CarcassItemRenderer.clear();
         StageGeometry.clear();
+        CubeVisibility.clear();
         HangingPose.clear();
         LyingPose.clear();
+        HeadPose.clear();
         StageTextures.clear();
         cachedLevel = null;
     }

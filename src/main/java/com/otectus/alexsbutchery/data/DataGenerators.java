@@ -35,6 +35,7 @@ public final class DataGenerators {
                 new LootTableProvider.SubProviderEntry(ModBlockLoot::new, LootContextParamSets.BLOCK),
                 new LootTableProvider.SubProviderEntry(CarcassStageLoot::new, LootContextParamSets.BLOCK))));
         generator.addProvider(event.includeServer(), new ModRecipes(output));
+        generator.addProvider(event.includeServer(), new CompatProfileProvider(output));
         generator.addProvider(event.includeServer(), new ForgeAdvancementProvider(output, lookup, helper, List.of(new ModAdvancements())));
         generator.addProvider(event.includeClient(), new ModGuideBook(output));
         generator.addProvider(event.includeClient(), new ModBlockStates(output, helper));

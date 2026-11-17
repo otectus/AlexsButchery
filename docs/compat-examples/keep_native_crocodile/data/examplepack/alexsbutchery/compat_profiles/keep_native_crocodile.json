@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "comment": "Crocodile carcasses keep Alex's Butchery's reptile meat even with Alex's Mobs Delight installed: \"native\" ends the list.",
+  "entity": "alexsmobs:crocodile",
+  "provider_priority": ["native"]
+}

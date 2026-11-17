@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "comment": "Bison meat from Alex's Delight when it is installed, ahead of the server's compat.providerPriority; other creatures keep the server order.",
+  "entity": "alexsmobs:bison",
+  "groups": ["meat"],
+  "provider_priority": ["alexsdelight"]
+}

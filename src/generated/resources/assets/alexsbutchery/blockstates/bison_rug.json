@@ -1,17 +1,32 @@
 {
   "variants": {
-    "facing=east": {
+    "coat_variant=false,facing=east": {
       "model": "alexsbutchery:block/bison_rug",
       "y": 90
     },
-    "facing=north": {
+    "coat_variant=false,facing=north": {
       "model": "alexsbutchery:block/bison_rug"
     },
-    "facing=south": {
+    "coat_variant=false,facing=south": {
       "model": "alexsbutchery:block/bison_rug",
       "y": 180
     },
-    "facing=west": {
+    "coat_variant=false,facing=west": {
+      "model": "alexsbutchery:block/bison_rug",
+      "y": 270
+    },
+    "coat_variant=true,facing=east": {
+      "model": "alexsbutchery:block/bison_rug",
+      "y": 90
+    },
+    "coat_variant=true,facing=north": {
+      "model": "alexsbutchery:block/bison_rug"
+    },
+    "coat_variant=true,facing=south": {
+      "model": "alexsbutchery:block/bison_rug",
+      "y": 180
+    },
+    "coat_variant=true,facing=west": {
       "model": "alexsbutchery:block/bison_rug",
       "y": 270
     }

@@ -36,7 +36,7 @@ final class HangingChecks {
                 supports.add(block.defaultBlockState().setValue(variant, value).setValue(HorizontalDirectionalBlock.FACING, facing));
         }
         for (var def : MobDefs.all()) {
-            if (def.floor()) continue;
+            if (!def.hookable()) continue;
             var handle = CarcassModels.get(def.entity());
             var shape = handle.shape(null);
             var profile = PoseProfiles.get(def);

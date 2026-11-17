@@ -68,6 +68,7 @@ public final class ClientSmokeTest {
     private static BlockPos base;
     private static int settledAt = -1;
     private static int quietTicks;
+    private static int carryReviewFov = 70;
     private static final int GRID_COLS = 8;
     private static final int GRID_STEP = 5;
     private static final int GRID_X0 = -18;
@@ -88,7 +89,7 @@ public final class ClientSmokeTest {
     public static void onTick(TickEvent.ClientTickEvent event) {
         // The benchmark, old-save and dedicated-server modes drive the client themselves.
         if (OUTPUT == null || finished || PerfBench.ENABLED || SaveCompatCreate.ENABLED || !GroundReview.LABEL.isEmpty() || !RemoteChecks.SERVER.isEmpty()
-                || event.phase != TickEvent.Phase.END) return;
+                || CompatWorldChecks.ENABLED || event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getInstance();
         try {
             if (mc.player == null || mc.level == null) {
@@ -149,6 +150,82 @@ public final class ClientSmokeTest {
     }
 
     private static void step(Minecraft mc, int t) {
+        if (Boolean.getBoolean("alexsbutchery.smoketest.carryReview")) {
+            if (t == 60) {
+                carryReviewFov = mc.options.fov().get();
+                CarryReviewChecks.run(checks);
+                CarryReviewChecks.stageLocal(true, 0, 45);
+                mc.options.hideGui = false;
+                mc.player.setXRot(12);
+            }
+            if (t == 70) mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+            if (t == 90) shot(mc, "carry_first_person_fresh_moose");
+            if (t == 100) {
+                mc.options.fov().set(100); // Keep the complete moose in narrow-window review captures.
+                mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
+            }
+            if (t == 120) shot(mc, "carry_rear_fresh_moose");
+            if (t == 130) mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+            if (t == 150) shot(mc, "carry_front_fresh_moose");
+            if (t == 160) CarryReviewChecks.stageLocal(false, 9, 270);
+            if (t == 180) shot(mc, "carry_front_cut_moose");
+            if (t == 190) {
+                mc.options.fov().set(carryReviewFov);
+                CarryReviewChecks.restoreLocal();
+                mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON);
+                finish(mc, allPassed(), "carry review complete");
+            }
+            return;
+        }
+        if (Boolean.getBoolean("alexsbutchery.smoketest.itemReview")) {
+            if (t == 60) { ItemPresentationChecks.run(checks); stageItemComparison(mc); }
+            if (t >= 65) {
+                var contexts = net.minecraft.world.item.ItemDisplayContext.values();
+                int index = (t - 65) / 16, phase = (t - 65) % 16;
+                if (index < contexts.length * 2) {
+                    boolean legacy = index % 2 == 0;
+                    if (phase == 0) mc.setScreen(new ItemReviewScreen(contexts[index / 2], legacy));
+                    if (phase == 12) shot(mc, "item_" + (legacy ? "before_" : "after_") + contexts[index / 2].name().toLowerCase(java.util.Locale.ROOT));
+                } else if (index == contexts.length * 2) {
+                    if (phase == 0) mc.getSingleplayerServer().execute(() ->
+                            mc.getSingleplayerServer().getPlayerList().getPlayers().get(0).setGameMode(GameType.SURVIVAL));
+                    if (phase == 6) {
+                        mc.setScreen(new net.minecraft.client.gui.screens.inventory.InventoryScreen(mc.player));
+                        if (net.minecraftforge.fml.ModList.get().isLoaded("jei")) JeiProbe.filter("carcass");
+                    }
+                    if (phase == 12) {
+                        checks.put("item_actual_inventory_screen", mc.screen instanceof net.minecraft.client.gui.screens.inventory.InventoryScreen);
+                        checks.put("item_actual_inventory_has_carcasses", mc.player.getInventory().getItem(9).getItem()
+                                == com.otectus.alexsbutchery.registry.ModItems.of(MobDefs.byId("moose")).carcass().get());
+                        shot(mc, "item_inventory_and_jei");
+                    }
+                } else {
+                    mc.setScreen(null);
+                    int worldTick = t - 65 - contexts.length * 32 - 16;
+                    // Also fit narrow tiled desktop windows: all three species and both rows stay in frame.
+                    if (worldTick == 0) camera(mc, 0, 40, 180, 24, 15);
+                    if (worldTick == 30) shot(mc, "item_world_donkey_moose_elephant");
+                    if (worldTick == 35) camera(mc, 0, 7, 180, 12, 2.8);
+                    if (worldTick == 60) shot(mc, "item_world_moose_contact");
+                    if (worldTick == 65) {
+                        mc.options.hideGui = false;
+                        mc.getSingleplayerServer().execute(() -> {
+                            var player = mc.getSingleplayerServer().getPlayerList().getPlayers().get(0);
+                            player.setGameMode(GameType.CREATIVE);
+                            player.teleportTo(mc.getSingleplayerServer().overworld(), base.getX(), base.getY(), base.getZ() + 22, 0, 12);
+                            player.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemPresentationChecks.stack("moose", new CompoundTag()));
+                        });
+                    }
+                    if (worldTick == 85) shot(mc, "item_held_moose_first_person");
+                    if (worldTick == 95) mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
+                    if (worldTick == 115) shot(mc, "item_held_moose_rear");
+                    if (worldTick == 125) mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_FRONT);
+                    if (worldTick == 145) shot(mc, "item_held_moose_front");
+                    if (worldTick == 155) { mc.options.setCameraType(net.minecraft.client.CameraType.FIRST_PERSON); finish(mc, allPassed(), "item context review complete"); }
+                }
+            }
+            return;
+        }
         if (Boolean.getBoolean("alexsbutchery.smoketest.exportBounds")) {
             if (t == 60) {
                 try { BoundsExport.write(Path.of(OUTPUT, "carcass_bounds.json"), checks); }
@@ -281,6 +358,7 @@ public final class ClientSmokeTest {
                 SHOTS.add(new Shot("smoketest_reload_bison", 5, 10, 180F, 23F, 1.7));
                 SHOTS.add(new Shot("smoketest_reload_laviathan_cut", 95, 8, 90F, 9F, 3.0));
                 floorGallery(level, true);
+                trophySideGallery();
                 return;
             }
             base = server.getPlayerList().getPlayers().get(0).blockPosition();
@@ -310,6 +388,7 @@ public final class ClientSmokeTest {
             }
             var marker = new CompoundTag(); marker.putBoolean("ReviewMarker", true);
             floorGallery(level, false);
+            trophyGallery(level);
             ((CarcassBlockEntity) level.getBlockEntity(base.offset(5, 0, 6))).setMobData(marker);
             try {
                 Files.createDirectories(Path.of(OUTPUT));
@@ -317,6 +396,39 @@ public final class ClientSmokeTest {
                         "world", geometryWorld, "x", base.getX(), "y", base.getY(), "z", base.getZ())));
             } catch (IOException e) { checks.put("save_metadata_written", false); }
         });
+    }
+
+    /**
+     * Every head and trophy close up: per mob with a head, the head on the floor and its trophy hung on a wall, both
+     * facing the camera, in their default look ({@code smoketest_trophy_<mob>.png}).
+     */
+    private static void trophyGallery(ServerLevel level) {
+        int i = 0;
+        for (var def : MobDefs.all()) {
+            if (!def.hasHead()) continue;
+            int x = (i % 10) * 12, z = 96 + (i / 10) * 14;
+            for (int dx = -5; dx <= 6; dx++) for (int dz = -3; dz <= 10; dz++)
+                level.setBlockAndUpdate(base.offset(x + dx, -1, z + dz), Blocks.SPRUCE_PLANKS.defaultBlockState());
+            for (int dx = -4; dx <= 0; dx++) for (int dy = 0; dy <= 2; dy++)
+                level.setBlockAndUpdate(base.offset(x - 2 + dx, dy, z), Blocks.SPRUCE_PLANKS.defaultBlockState());
+            level.setBlockAndUpdate(base.offset(x - 2, 1, z + 1), facing(ModBlocks.of(def).mount().get().defaultBlockState()));
+            level.setBlockAndUpdate(base.offset(x + 2, 0, z + 1), facing(ModBlocks.of(def).head().get().defaultBlockState()));
+            double distance = (def.mount() == com.otectus.alexsbutchery.def.MountSize.LARGE) ? 9 : 4.5;
+            SHOTS.add(new Shot("smoketest_trophy_" + def.id(), x + 0.5, z + 1 + distance, 180F, 12F, (def.mount() == com.otectus.alexsbutchery.def.MountSize.LARGE) ? 2.4 : 1.3));
+            // A side view exposes gaps which the front-on trophy gallery cannot show.
+            SHOTS.add(new Shot("smoketest_trophy_side_" + def.id(), x - 6.5, z + 1.7, 270F, 0F, -.1));
+            i++;
+        }
+    }
+
+    /** Recheck attachment from the other side of the loose head, so giant loose heads cannot obscure the camera. */
+    private static void trophySideGallery() {
+        int i = 0;
+        for (var def : MobDefs.all()) if (def.hasHead()) {
+            int x = (i % 10) * 12, z = 96 + (i / 10) * 14;
+            SHOTS.add(new Shot("smoketest_trophy_side_" + def.id(), x - 6.5, z + 1.7, 270F, 0F, -.1));
+            i++;
+        }
     }
 
     private static void floorGallery(ServerLevel level, boolean reload) {
@@ -369,6 +481,7 @@ public final class ClientSmokeTest {
             level.setBlockAndUpdate(base.offset(4, 0, -3), kDrained.setValue(AbstractCarcassBlock.BLOCKSTATE_STAGED, 8));
             // Row z=1: head, trophy, roadrunner on the ground, roadrunner hanging headless, elephant.
             level.setBlockAndUpdate(base.offset(-5, 0, 1), facing(ModBlocks.of(kangaroo).head().get().defaultBlockState()));
+            level.setBlockAndUpdate(base.offset(-3, 0, 0), Blocks.SPRUCE_PLANKS.defaultBlockState());
             level.setBlockAndUpdate(base.offset(-3, 0, 1), facing(ModBlocks.of(kangaroo).mount().get().defaultBlockState()));
             level.setBlockAndUpdate(base.offset(-1, 0, 1), facing(ModBlocks.of(roadrunner).carcass().get().defaultBlockState()));
             hang(level, hook, base.offset(1, 1, 1), facing(ModBlocks.of(roadrunner).drained().get().defaultBlockState())
@@ -473,9 +586,11 @@ public final class ClientSmokeTest {
             level.setBlockAndUpdate(base.offset(cx, 0, cz), east(ModBlocks.of(def).carcass().get().defaultBlockState()));
             if (def.hasHead()) {
                 level.setBlockAndUpdate(base.offset(cx - 3, 0, cz + 2), facing(ModBlocks.of(def).head().get().defaultBlockState()));
+                // A trophy hangs on a wall.
+                level.setBlockAndUpdate(base.offset(cx - 5, 0, cz), Blocks.SPRUCE_PLANKS.defaultBlockState());
                 level.setBlockAndUpdate(base.offset(cx - 5, 0, cz + 1), facing(ModBlocks.of(def).mount().get().defaultBlockState()));
             }
-            if (!def.floor()) {
+            if (def.hookable()) {
                 BlockState hanging = def.bleeds()
                         ? east(ModBlocks.of(def).drained().get().defaultBlockState()).setValue(AbstractCarcassBlock.BLOCKSTATE_STAGED, 1)
                         : east(ModBlocks.of(def).carcass().get().defaultBlockState()).setValue(AbstractCarcassBlock.BLOCKSTATE_STAGED, 1);
@@ -485,7 +600,7 @@ public final class ClientSmokeTest {
             }
             EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(def.entity());
             float size = type == null ? 1F : Math.max(type.getWidth(), type.getHeight());
-            if (def.floor() || com.otectus.alexsbutchery.client.pose.PoseProfiles.get(def).segments != null) size = Math.max(size, 4F);
+            if ((def.mount() == com.otectus.alexsbutchery.def.MountSize.LARGE) || com.otectus.alexsbutchery.client.pose.PoseProfiles.get(def).segments != null) size = Math.max(size, 4F);
             double distance = 3.0 + size * 1.0;
             SHOTS.add(new Shot("smoketest_mob_" + def.id(), cx + 0.5, cz + distance, 180F, 28F, 1.4 + size * 0.55));
             i++;
@@ -721,8 +836,38 @@ public final class ClientSmokeTest {
         checks.put("hanging_block_entity", mc.level.getBlockEntity(base.offset(-2, 1, -3)) instanceof CarcassBlockEntity);
         checks.put("mount_block_entity", mc.level.getBlockEntity(base.offset(-3, 0, 1)) instanceof CarcassBlockEntity);
         runFeatureChecks(mc);
+        CompatClientChecks.run(mc, checks, "compat_");
         AssetChecks.run(checks);
+        ItemPresentationChecks.run(checks);
         GeometryChecks.run(checks);
+    }
+
+    private static void stageItemComparison(Minecraft mc) {
+        var server = mc.getSingleplayerServer();
+        server.execute(() -> {
+            var level = server.overworld();
+            base = server.getPlayerList().getPlayers().get(0).blockPosition();
+            level.setDayTime(6000);
+            level.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, server);
+            var reviewPlayer = server.getPlayerList().getPlayers().get(0);
+            String[] icons = {"moose", "elephant", "jerboa", "catfish", "terrapin", "cachalot_whale", "anaconda", "farseer"};
+            for (int i = 0; i < icons.length; i++)
+                reviewPlayer.getInventory().setItem(9 + i, ItemPresentationChecks.stack(icons[i], new CompoundTag()));
+            for (int x = -20; x <= 20; x++) for (int z = -5; z <= 16; z++)
+                level.setBlockAndUpdate(base.offset(x, -1, z), ((x + z) % 2 == 0 ? Blocks.WHITE_CONCRETE : Blocks.LIGHT_GRAY_CONCRETE).defaultBlockState());
+            var donkey = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("butchery", "donkey_carcass"));
+            Block[] blocks = {donkey, ModBlocks.of(MobDefs.byId("moose")).carcass().get(), ModBlocks.of(MobDefs.byId("elephant")).carcass().get()};
+            for (int i = 0; i < blocks.length; i++) {
+                int x = (i - 1) * 12;
+                var item = new net.minecraft.world.entity.item.ItemEntity(level, base.getX() + x + .5, base.getY(), base.getZ() + .5,
+                        new net.minecraft.world.item.ItemStack(blocks[i]));
+                item.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+                item.setNeverPickUp();
+                item.setUnlimitedLifetime();
+                level.addFreshEntity(item);
+                level.setBlockAndUpdate(base.offset(x, 0, 10), blocks[i].defaultBlockState());
+            }
+        });
     }
 
     private static void camera(Minecraft mc, double dx, double dz, float yaw, float pitch) {
@@ -751,6 +896,7 @@ public final class ClientSmokeTest {
     }
 
     private static void finish(Minecraft mc, boolean pass, String reason) {
+        if (Boolean.getBoolean("alexsbutchery.smoketest.carryReview")) CarryReviewChecks.restoreLocal();
         finished = true;
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("pass", pass);

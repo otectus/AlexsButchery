@@ -28,11 +28,15 @@ import java.util.List;
  * One right-click of a cleaver or skinning knife on a carcass: performs the next stage, rolls its loot (re-rolled
  * once per Looting level when Butchery's looting option is on, exactly like Butchery), adds Butchery's organ table
  * at the cut stages, wears the tool and advances or removes the block.
+ *
+ * <p>The loot is decided by the tool as it was when the cut was made: Looting and every tool predicate in the stage and
+ * organ tables read a copy taken before the cut wears the held tool, so the cut that breaks a tool pays like any other.
  */
 public final class CutMachine {
 
     public static InteractionResult click(Level level, BlockPos pos, BlockState state, Player player, InteractionHand hand, boolean freshBlock) {
         if (!(state.getBlock() instanceof AbstractCarcassBlock block)) return InteractionResult.PASS;
+        if (Acid.dissolving(level, pos)) return InteractionResult.CONSUME;
         MobDef def = block.def();
         int current = block.stage(state);
         Stages.Step step = Stages.next(def, freshBlock, current);
@@ -42,21 +46,22 @@ public final class CutMachine {
         if (!matches) return InteractionResult.PASS;
         if (level.isClientSide) return InteractionResult.SUCCESS;
         ServerLevel server = (ServerLevel) level;
+        ItemStack used = tool.copy();
 
         player.swing(hand, true);
-        tool.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
         level.levelEvent(2001, pos, Block.getId(state));
         level.playSound(null, pos, step.action().needsKnife() ? SoundEvents.SHEEP_SHEAR : SoundEvents.PLAYER_ATTACK_SWEEP,
                 SoundSource.BLOCKS, 1.0F, 1.0F);
 
-        int looting = ButcheryHooks.lootingEnabled() ? EnchantmentHelper.getItemEnchantmentLevel(Enchantments.MOB_LOOTING, tool) : 0;
+        int looting = ButcheryHooks.lootingEnabled() ? EnchantmentHelper.getItemEnchantmentLevel(Enchantments.MOB_LOOTING, used) : 0;
         int rolls = 1 + looting;
         CarcassBlockEntity carcass = level.getBlockEntity(pos) instanceof CarcassBlockEntity c ? c : null;
-        List<ItemStack> drops = new ArrayList<>(CarcassLoot.roll(server, def.stageTable(step.action().table(def)), pos, state, tool, player, carcass, rolls));
+        List<ItemStack> drops = new ArrayList<>(CarcassLoot.roll(server, def.stageTable(step.action().table(def)), pos, state, used, player, carcass, rolls));
         int cut = step.action().cutIndex();
         if (cut > 0 && def.organs() && ButcheryHooks.organs()) {
-            drops.addAll(CarcassLoot.roll(server, ButcheryHooks.organsTable(cut), pos, state, tool, player, carcass, rolls));
+            drops.addAll(CarcassLoot.roll(server, ButcheryHooks.organsTable(cut), pos, state, used, player, carcass, rolls));
         }
+        tool.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
         CarcassLoot.drop(server, pos, drops);
 
         if (player instanceof ServerPlayer sp) ButcheringTrigger.INSTANCE.trigger(sp, def, trigger(step.action(), def));

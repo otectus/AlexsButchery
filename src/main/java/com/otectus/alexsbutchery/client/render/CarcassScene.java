@@ -5,6 +5,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.otectus.alexsbutchery.butcher.Stages;
+import com.otectus.alexsbutchery.block.HeadMountBlock;
+import com.otectus.alexsbutchery.def.MountSize;
 import com.otectus.alexsbutchery.client.pose.PoseProfile;
 import com.otectus.alexsbutchery.client.pose.SegmentChain;
 import com.otectus.alexsbutchery.compat.ButcheryHooks;
@@ -50,6 +52,16 @@ public final class CarcassScene {
      * anchor block's floor (below 0 on a slab or path, see {@code CarcassBounds.groundLevel}).
      */
     public static void renderLying(Subject s, Direction facing, double ground, PoseStack pose, MultiBufferSource buffers, int light) {
+        renderLying(s, facing, ground, Set.of(), pose, buffers, light);
+    }
+
+    /** Measurement-only support anatomy in the same final lying pose; ignored ears/fins still render normally. */
+    public static void renderLyingSupport(Subject s, Direction facing, PoseStack pose, MultiBufferSource buffers, int light) {
+        renderLying(s, facing, 0, s.profile().lyingIgnore, pose, buffers, light);
+    }
+
+    private static void renderLying(Subject s, Direction facing, double ground, Set<String> left,
+                                     PoseStack pose, MultiBufferSource buffers, int light) {
         Lying lying = lying(s, light);
         PoseProfile p = s.profile();
         pose.pushPose();
@@ -58,7 +70,7 @@ public final class CarcassScene {
             pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot() + p.lyingYaw));
             poseLying(p, lying.height(), lying.roll(), lying.centre(), pose);
             drawCreature(s, lying.shape(), lying.size(), lying.chain(), lying.joints(), lying.layout().lifts(), lying.up(),
-                    pose, part -> buffers, light);
+                    left, pose, part -> buffers, light);
         } finally { pose.popPose(); }
     }
 
@@ -235,26 +247,44 @@ public final class CarcassScene {
     /** A severed head resting on the block, or on Butchery's plaque when {@code mount}. */
     public static void renderHead(CarcassModels.Handle handle, MobDef def, PoseProfile profile, CompoundTag mobData, boolean mount,
                                   Direction facing, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
-        if (mount) {
-            BlockState plaque = ButcheryHooks.emptyMount(def.mount().butcheryMount).defaultBlockState();
-            if (plaque.hasProperty(HorizontalDirectionalBlock.FACING)) plaque = plaque.setValue(HorizontalDirectionalBlock.FACING, facing);
-            pose.pushPose();
-            Minecraft.getInstance().getBlockRenderer().renderSingleBlock(plaque, pose, buffers, light, overlay);
-            pose.popPose();
-        }
-        float[] size = headSize(handle, profile, mobData);
+        renderHead(handle, def, profile, mobData, mount, facing, true, pose, buffers, light, overlay);
+    }
+
+    /**
+     * As above; without {@code plaque} only the head itself, placed as on the plaque. The bounds export measures that,
+     * the plaque's footprint being added server-side ({@code HeadMountBlock#plaque}).
+     */
+    public static void renderHead(CarcassModels.Handle handle, MobDef def, PoseProfile profile, CompoundTag mobData, boolean mount,
+                                  Direction facing, boolean plaque, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
+        if (mount && plaque) renderPlaque(def, facing, pose, buffers, light, overlay);
+        HeadPose.Layout layout = HeadPose.get(handle, profile, mobData);
         pose.pushPose();
-        if (mount) {
-            // The back of the head against the plaque's face, a quarter block from the wall.
-            double out = size[2] * 0.5 - 0.25;
-            pose.translate(0.5 + facing.getStepX() * out + profile.headOffset[0], 0.5 + profile.headOffset[1],
-                    0.5 + facing.getStepZ() * out + profile.headOffset[2]);
-        } else {
-            pose.translate(0.5 + profile.headOffset[0], size[1] * 0.5 + profile.headOffset[1], 0.5 + profile.headOffset[2]);
-        }
-        pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
-        drawHead(handle, profile, mobData, StageTextures.Look.FRESH, pose, buffers, light, 1F);
-        pose.popPose();
+        try {
+            pose.translate(.5, mount ? .5 : 0, .5);
+            pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
+            if (mount) {
+                var skull = layout.skull();
+                // Seat the solid skull/neck on the wood, not ears or antlers on the decorative rim.
+                pose.translate(-skull.getCenter().x, -skull.getCenter().y, HeadMountBlock.FACE - .5 - skull.maxZ);
+            } else pose.translate(0, -layout.floor(), 0);
+            // Profile adjustments follow the trophy's facing, just as they do for rug heads.
+            pose.translate(profile.headOffset[0], profile.headOffset[1], profile.headOffset[2]);
+            drawHead(handle, profile, mobData, StageTextures.Look.FRESH, pose, buffers, light, 1F);
+        } finally { pose.popPose(); }
+    }
+
+    /** Small trophies need a wall plaque too: Butchery's small empty mount is a tilted tabletop stand. */
+    public static void renderPlaque(MobDef def, Direction facing, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
+        BlockState board = ButcheryHooks.emptyMount((def.mount() == MountSize.SMALL ? MountSize.REGULAR : def.mount()).butcheryMount)
+                .defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, Direction.NORTH);
+        pose.pushPose();
+        try {
+            pose.translate(.5, .5, .5);
+            pose.mulPose(Axis.YP.rotationDegrees(180F - facing.toYRot()));
+            if (def.mount() == MountSize.SMALL) pose.scale(.5F, .5F, 1F);
+            pose.translate(-.5, -.5, -.5);
+            Minecraft.getInstance().getBlockRenderer().renderSingleBlock(board, pose, buffers, light, overlay);
+        } finally { pose.popPose(); }
     }
 
     /** The head of a pelt rug: at the rug's front edge, facing out, chin toward the floor. */
@@ -267,15 +297,17 @@ public final class CarcassScene {
         PoseStack.Pose frame = pose.last();
         try {
             handle.pose(shape);
-            float[] centre = ModelParts.centre(head);
+            var centre = HeadPose.get(handle, profile, mobData).centre();
             PoseStack local = new PoseStack();
             local.mulPose(Axis.XP.rotationDegrees(-profile.rugHeadPitch));
             float scale = profile.headScale * profile.rugHeadScale * shape.scale();
             local.scale(-scale, -scale, scale);
-            local.translate(-centre[0] / 16F, -centre[1] / 16F, -centre[2] / 16F);
+            local.translate(-centre.x, -centre.y, -centre.z);
             ModelBounds mesh = new ModelBounds();
-            if (head.raw() instanceof AdvancedModelBox box) ModelParts.solidBounds(box, local, mesh);
-            else head.render(local, mesh, light, OverlayTexture.NO_OVERLAY);
+            CubeVisibility.render(shape, () -> {
+                if (head.raw() instanceof AdvancedModelBox box) ModelParts.solidBounds(box, local, mesh);
+                else head.render(local, mesh, light, OverlayTexture.NO_OVERLAY);
+            });
             var bounds = mesh.bounds();
             pose.pushPose();
             pose.translate(.5, .3 / 16, .5);
@@ -292,20 +324,6 @@ public final class CarcassScene {
         }
     }
 
-    /** The head's size in blocks, as drawn: {@code {width, height, depth}}. */
-    private static float[] headSize(CarcassModels.Handle handle, PoseProfile profile, CompoundTag mobData) {
-        CarcassModels.Shape shape = handle.shape(mobData);
-        ModelParts.Part head = headPart(shape, profile);
-        if (head == null) return new float[]{0.5F, 0.5F, 0.5F};
-        Runnable restore = ModelParts.savePose(shape);
-        try {
-            handle.pose(shape);
-            float[] centre = ModelParts.centre(head);
-            float scale = profile.headScale * shape.scale() / 16F;
-            return new float[]{centre[3] * scale, centre[4] * scale, centre[5] * scale};
-        } finally { restore.run(); }
-    }
-
     /** The head part alone, the middle of its geometry at the current origin. */
     private static void drawHead(CarcassModels.Handle handle, PoseProfile profile, CompoundTag mobData, StageTextures.Look look,
                                  PoseStack pose, MultiBufferSource buffers, int light, float multiplier) {
@@ -316,13 +334,15 @@ public final class CarcassScene {
         PoseStack.Pose frame = pose.last();
         try {
             handle.pose(shape);
-            float[] centre = ModelParts.centre(head);
+            var centre = HeadPose.get(handle, profile, mobData).centre();
             float scale = profile.headScale * shape.scale() * multiplier;
             pose.pushPose();
             pose.scale(-scale, -scale, scale);
-            pose.translate(-centre[0] / 16F, -centre[1] / 16F, -centre[2] / 16F);
+            pose.translate(-centre.x, -centre.y, -centre.z);
             VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(StageTextures.get(shape.texture(), look)));
-            head.render(pose, consumer, light, OverlayTexture.NO_OVERLAY);
+            // Like the carcass, leave out the fully transparent alternate cubes (tusks, antlers): nothing visible changes,
+            // and the bounds export measures exactly what shows.
+            CubeVisibility.render(shape, () -> head.render(pose, consumer, light, OverlayTexture.NO_OVERLAY));
         } finally {
             while (pose.last() != frame) pose.popPose();
             restore.run();
@@ -343,42 +363,34 @@ public final class CarcassScene {
                                   Set<Stages.Action> done, boolean headModel, StageTextures.Look look, boolean hasSkeleton, Map<String, HangingPose.Rotation> legs,
                                   Set<String> left, PoseStack pose, MultiBufferSource buffers, int light) {
         Runnable restore = ModelParts.savePose(shape);
-        handle.pose(shape);
-        Map<AdvancedModelBox, HangingPose.Rotation> savedAngles = new IdentityHashMap<>();
-        legs.forEach((name, angle) -> {
-            var part = shape.parts().get(name);
-            if (part != null && part.raw() instanceof AdvancedModelBox box) {
-                savedAngles.put(box, HangingPose.Rotation.of(box));
-                angle.apply(box);
-            }
-        });
-        List<ModelParts.Part> hidden = new ArrayList<>();
-        boolean head = headModel && done.contains(Stages.Action.HEAD);
-        boolean cut1 = done.contains(Stages.Action.CUT_1);
-        boolean cut2 = done.contains(Stages.Action.CUT_2);
-        shape.parts().forEach((name, part) -> {
-            if (!part.visible()) return;
-            if (profile.isAlwaysHidden(name) || head && profile.isHead(name) || cut1 && profile.isCut1(name) || cut2 && profile.isCut2(name)
-                    || left.contains(name)) {
-                part.setVisible(false);
-                hidden.add(part);
-            }
-        });
         PoseStack.Pose frame = pose.last();
         try {
-            HangingPose.captureAnchor(shape, profile, pose, buffers);
-            if (!profile.skeletal && (look == StageTextures.Look.BONE || look == StageTextures.Look.SKINNED || cut1 || cut2)) {
-                StageGeometry.render(shape, profile, headModel, look, done, hasSkeleton, pose, buffers, light);
-            } else {
-                VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(texture));
-                shape.model().renderToBuffer(pose, consumer, light, OverlayTexture.NO_OVERLAY, 1F, 1F, 1F, 1F);
-            }
+            handle.pose(shape);
+            legs.forEach((name, angle) -> {
+                var part = shape.parts().get(name);
+                if (part != null && part.raw() instanceof AdvancedModelBox box) angle.apply(box);
+            });
+            boolean head = headModel && done.contains(Stages.Action.HEAD);
+            boolean cut1 = done.contains(Stages.Action.CUT_1);
+            boolean cut2 = done.contains(Stages.Action.CUT_2);
+            shape.parts().forEach((name, part) -> {
+                if (profile.isAlwaysHidden(name) || head && profile.isHead(name) || cut1 && profile.isCut1(name)
+                        || cut2 && profile.isCut2(name) || left.contains(name)) part.setVisible(false);
+            });
+            CubeVisibility.render(shape, () -> {
+                HangingPose.captureAnchor(shape, profile, pose, buffers);
+                CarcassPresentation.captureGrip(shape, pose, buffers);
+                if (!profile.skeletal && (look == StageTextures.Look.BONE || look == StageTextures.Look.SKINNED || cut1 || cut2)) {
+                    StageGeometry.render(shape, profile, headModel, look, done, hasSkeleton, pose, buffers, light);
+                } else {
+                    VertexConsumer consumer = buffers.getBuffer(RenderType.entityCutoutNoCull(texture));
+                    shape.model().renderToBuffer(pose, consumer, light, OverlayTexture.NO_OVERLAY, 1F, 1F, 1F, 1F);
+                }
+            });
         } finally {
             // Citadel parts push their own frames without finally blocks; also unwind those if a buffer fails.
             while (pose.last() != frame) pose.popPose();
             // The model is the live one the mob's own renderer uses; never leave parts hidden or posed for hanging.
-            hidden.forEach(part -> part.setVisible(true));
-            savedAngles.forEach((box, angle) -> angle.apply(box));
             restore.run();
         }
     }

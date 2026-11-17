@@ -121,8 +121,19 @@ public final class SaveCompatCreate {
         BlockPos rug = base.offset(9 * slot[0]++, 0, 0);
         level.setBlockAndUpdate(rug, ModBlocks.of(MobDefs.byId("bison")).rug().get().defaultBlockState().setValue(RugBlock.FACING, Direction.WEST));
         ((CarcassBlockEntity) level.getBlockEntity(rug)).setMobData(marker);
+        // Meat carcasses saved mid-way, for the 0.2.0 compatibility rules to continue: a skinned bison on the ground,
+        // a skinned crocodile on a hook, a grizzly after its first cut, and mantis shrimp with and without a saved colour.
+        place.apply(drained("bison", 7, Direction.NORTH), marker);
+        // The skinned crocodile hangs almost four blocks below its hook: hang it high enough to clear the ground.
+        BlockPos crocodile = hangUnder(level, base.offset(9 * slot[0], 6, 0), drained("crocodile", 3, Direction.SOUTH));
+        slot[0]++;
+        ((CarcassBlockEntity) level.getBlockEntity(crocodile)).setMobData(marker);
+        place.apply(drained("grizzly_bear", 8, Direction.EAST), marker);
+        CompoundTag lime = marker.copy(); lime.putInt("Variant", 2);
+        place.apply(carcass("mantis_shrimp", 0, Direction.NORTH), lime);
+        place.apply(carcass("mantis_shrimp", 0, Direction.SOUTH), marker);
 
-        for (int i = 0; i < slot[0]; i++) for (int dy : new int[]{0, 2}) {
+        for (int i = 0; i < slot[0]; i++) for (int dy : new int[]{0, 2, 5}) {
             BlockPos pos = base.offset(9 * i, dy, 0);
             if (!(level.getBlockEntity(pos) instanceof CarcassBlockEntity be)) continue;
             JsonObject entry = new JsonObject();

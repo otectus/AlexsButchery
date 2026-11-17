@@ -21,15 +21,22 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
-/** A severed head, placeable like Butchery's; tagged {@code butchery:heads} so Butchery's hammer breaks it down. */
+/**
+ * A severed head, placeable like Butchery's; tagged {@code butchery:heads} so Butchery's hammer breaks it down.
+ *
+ * <p>What can be targeted is the head as drawn: its exported anatomy ({@link CarcassBounds}, form {@code head}), so an
+ * elephant's trunk or a whale's jaw reaching past the block selects it, through the same picker and server reach check as
+ * carcasses. What the player bumps into stays the small block-sized rest it always was ({@link #REST}).
+ */
 public class HeadBlock extends Block implements EntityBlock, MobBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    private static final VoxelShape SHAPE = Block.box(4, 0, 4, 12, 8, 12);
+    /** The head's collision, and its selection when no anatomy was exported for it. */
+    static final VoxelShape REST = Block.box(4, 0, 4, 12, 8, 12);
 
     protected final MobDef def;
 
     public HeadBlock(MobDef def) {
-        super(Properties.of().sound(SoundType.WOOL).strength(1.0F, 10.0F).noOcclusion()
+        super(Properties.of().sound(SoundType.WOOL).strength(1.0F, 10.0F).noOcclusion().dynamicShape()
                 .isRedstoneConductor((state, level, pos) -> false));
         this.def = def;
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
@@ -52,7 +59,12 @@ public class HeadBlock extends Block implements EntityBlock, MobBlock {
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return SHAPE;
+        return CarcassBounds.shape(state, level, pos);
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return REST;
     }
 
     @Override

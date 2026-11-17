@@ -2,12 +2,15 @@ package com.otectus.alexsbutchery.block;
 
 import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
 import com.otectus.alexsbutchery.butcher.Acid;
+import com.otectus.alexsbutchery.butcher.HangHandler;
 import com.otectus.alexsbutchery.compat.ButcheryHooks;
 import com.otectus.alexsbutchery.def.MobDef;
 import com.otectus.alexsbutchery.registry.ModBlockEntities;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -76,11 +79,18 @@ public abstract class AbstractCarcassBlock extends Block implements EntityBlock,
 
     /**
      * Acid dissolves a whole carcass whatever else the block does with a right-click; everything else is the
-     * block's own {@link #useTool}.
+     * block's own {@link #useTool}. While acid works ({@link Acid#dissolving}) the carcass takes no tool and no more acid:
+     * the click is consumed on both sides without wearing the tool, paying loot, bleeding or granting anything.
      */
     @Override
     public final InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (ButcheryHooks.isAcidBottle(player.getItemInHand(hand))) {
+        ItemStack held = player.getItemInHand(hand);
+        if (Acid.dissolving(level, pos)) {
+            if (!ButcheryHooks.isAcidBottle(held) && !ButcheryHooks.isCleaver(held) && !ButcheryHooks.isSkinningKnife(held)) return InteractionResult.PASS;
+            if (!level.isClientSide) player.displayClientMessage(Component.translatable("message.alexsbutchery.dissolving"), true);
+            return InteractionResult.CONSUME;
+        }
+        if (ButcheryHooks.isAcidBottle(held)) {
             InteractionResult acid = Acid.pour(level, pos, state, this, player, hand);
             if (acid != InteractionResult.PASS) return acid;
         }
@@ -130,9 +140,18 @@ public abstract class AbstractCarcassBlock extends Block implements EntityBlock,
         return Shapes.empty();
     }
 
+    /**
+     * Facing the player. Placed against the underside of Butchery's hook or rope, which is how {@code HangHandler} hangs
+     * a carcass through the ordinary item placement, a hookable carcass hangs from it (Butchery's {@code blockstate 1}).
+     */
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        BlockState state = defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        if (def.hookable() && context.getClickedFace() == Direction.DOWN
+                && HangHandler.isSupport(context.getLevel().getBlockState(context.getClickedPos().above()))) {
+            state = state.setValue(stateProperty(), 1);
+        }
+        return state;
     }
 
     @Override

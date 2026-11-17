@@ -3,15 +3,11 @@ package com.otectus.alexsbutchery.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
 import com.otectus.alexsbutchery.block.CarcassBounds;
-import com.otectus.alexsbutchery.block.DrainedCarcassBlock;
 import com.otectus.alexsbutchery.block.HeadBlock;
 import com.otectus.alexsbutchery.block.HeadMountBlock;
 import com.otectus.alexsbutchery.block.MobBlock;
 import com.otectus.alexsbutchery.block.RugBlock;
-import com.otectus.alexsbutchery.block.SkeletonBlock;
-import com.otectus.alexsbutchery.block.StagedCarcassBlock;
 import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
-import com.otectus.alexsbutchery.butcher.Stages;
 import com.otectus.alexsbutchery.client.pose.PoseProfile;
 import com.otectus.alexsbutchery.client.pose.PoseProfiles;
 import com.otectus.alexsbutchery.config.ClientConfig;
@@ -22,7 +18,6 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.Set;
 
 /**
  * Draws every mob block with the mob's own Alex's Mobs model: carcasses lying on their side or hanging from the hook
@@ -52,14 +47,15 @@ public class CarcassRenderer implements BlockEntityRenderer<CarcassBlockEntity> 
             return;
         }
         if (!(state.getBlock() instanceof AbstractCarcassBlock block)) return;
-        int stage = block.stage(state);
-        Set<Stages.Action> done = block instanceof DrainedCarcassBlock ? Stages.done(def, false, stage)
-                : block instanceof StagedCarcassBlock ? Stages.done(def, true, stage) : Set.of();
-        StageTextures.Look look = block instanceof SkeletonBlock ? StageTextures.Look.BONE
-                : block instanceof DrainedCarcassBlock
-                ? (done.contains(Stages.Action.SKIN) ? StageTextures.Look.SKINNED : StageTextures.Look.DRAINED)
-                : StageTextures.Look.FRESH;
-        CarcassScene.Subject subject = new CarcassScene.Subject(def, handle, profile, entity.mobData(), look, done);
+        CarcassVisualState visual = CarcassVisualState.fromAppearance(state, entity.mobData());
+        CarcassScene.Subject subject = visual.subject();
+        // Only an installed BE may sample support blocks. Detached renderers use a neutral lying frame.
+        var level = entity.getLevel();
+        boolean installed = level != null && level.getBlockEntity(entity.getBlockPos()) == entity;
+        if (!installed) {
+            CarcassScene.renderLying(subject, Direction.SOUTH, pose, buffers, light);
+            return;
+        }
         Direction facing = state.getValue(AbstractCarcassBlock.FACING);
         if (block.hanging(state)) CarcassScene.renderHanging(subject, facing,
                 entity.getLevel().getBlockState(entity.getBlockPos().above()), pose, buffers, light);

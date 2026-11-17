@@ -2,9 +2,12 @@ package com.otectus.alexsbutchery.smoketest;
 
 import com.google.gson.GsonBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
 import com.otectus.alexsbutchery.block.CarcassBounds;
 import com.otectus.alexsbutchery.block.DrainedCarcassBlock;
+import com.otectus.alexsbutchery.block.HeadBlock;
+import com.otectus.alexsbutchery.block.HeadMountBlock;
 import com.otectus.alexsbutchery.block.SkeletonBlock;
 import com.otectus.alexsbutchery.block.StagedCarcassBlock;
 import com.otectus.alexsbutchery.butcher.Stages;
@@ -21,6 +24,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,6 +42,7 @@ final class BoundsExport {
         switch (def.id()) {
             case "catfish" -> { for (int i = 1; i < 3; i++) { var nbt = new CompoundTag(); nbt.putInt("CatfishSize", i); data.add(nbt); } }
             case "elephant" -> { var nbt = new CompoundTag(); nbt.putBoolean("Tusked", true); data.add(nbt); }
+            case "moose" -> { var nbt = new CompoundTag(); nbt.putBoolean("Antlered", false); data.add(nbt); }
             case "blobfish" -> { var nbt = new CompoundTag(); nbt.putBoolean("Depressurized", true); data.add(nbt); }
             case "bison" -> { var nbt = new CompoundTag(); nbt.putInt("Age", -24000); data.add(nbt); }
             case "gorilla" -> { var nbt = new CompoundTag(); nbt.putBoolean("Silverback", true); data.add(nbt); }
@@ -75,38 +80,72 @@ final class BoundsExport {
         else CarcassScene.renderLying(subject, facing, new PoseStack(), type -> mesh, 15728880);
     }
 
+    /** Heads and head mounts of a mob, whose selection follows the drawn head (and, for mounts, the plaque). */
+    static List<HeadBlock> heads(MobDef def) {
+        var entry = ModBlocks.of(def);
+        List<HeadBlock> result = new ArrayList<>();
+        if (entry.head() != null) result.add(entry.head().get());
+        if (entry.mount() != null) result.add(entry.mount().get());
+        return result;
+    }
+
+    /** The head alone, as the block entity renderer places it; a mount's plaque is not measured (its footprint is known). */
+    static void renderHead(BlockState state, CompoundTag data, Direction facing, VertexConsumer mesh) {
+        MobDef def = ((HeadBlock) state.getBlock()).def();
+        CarcassScene.renderHead(CarcassModels.get(def.entity()), def, PoseProfiles.get(def), data, state.getBlock() instanceof HeadMountBlock,
+                facing, false, new PoseStack(), type -> mesh, 15728880, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY);
+    }
+
     static void write(Path path, Map<String, Object> checks) throws java.io.IOException {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put(CarcassBounds.INPUTS, CarcassBounds.currentInputs());
         var support = ButcheryHooks.hook().defaultBlockState();
         var anchor = CarcassBounds.support(support).subtract(.5, 1, .5);
-        for (MobDef def : MobDefs.all()) for (var block : blocks(def)) for (int stage : block.stateProperty().getPossibleValues()) {
-            var state = block.defaultBlockState().setValue(block.stateProperty(), stage);
-            for (var data : variants(def)) {
-                ModelBounds mesh = new ModelBounds();
-                render(state, data, Direction.NORTH, support, mesh);
-                List<AABB> boxes = new ArrayList<>();
-                for (var cube : mesh.cubes()) {
-                    var b = block.hanging(state) ? cube.move(anchor.scale(-1)) : cube;
-                    // One thirty-second block of picking tolerance also makes fins/whiskers targetable.
-                    b = new AABB(Math.floor(b.minX * 32) / 32 - .03125, Math.floor(b.minY * 32) / 32 - .03125,
-                            Math.floor(b.minZ * 32) / 32 - .03125, Math.ceil(b.maxX * 32) / 32 + .03125,
-                            Math.ceil(b.maxY * 32) / 32 + .03125, Math.ceil(b.maxZ * 32) / 32 + .03125);
-                    AABB candidate = b;
-                    if (boxes.stream().anyMatch(old -> contains(old, candidate))) continue;
-                    boxes.removeIf(old -> contains(candidate, old));
-                    boxes.add(b);
+        int heads = 0;
+        for (MobDef def : MobDefs.all()) {
+            for (var block : blocks(def)) for (int stage : block.stateProperty().getPossibleValues()) {
+                var state = block.defaultBlockState().setValue(block.stateProperty(), stage);
+                for (var data : variants(def)) {
+                    ModelBounds mesh = new ModelBounds();
+                    render(state, data, Direction.NORTH, support, mesh);
+                    result.put(CarcassBounds.key(state, data), boxes(def, state, data, mesh, block.hanging(state) ? anchor : Vec3.ZERO));
                 }
-                if (boxes.isEmpty()) throw new IllegalStateException("Empty bounds: " + CarcassBounds.key(state, data));
-                for (var b : boxes) if (Math.max(Math.max(Math.abs(b.minX), Math.abs(b.maxX)),
-                        Math.max(Math.abs(b.minZ), Math.abs(b.maxZ))) >= CarcassBounds.SEARCH_RADIUS - 1)
-                    throw new IllegalStateException("Bounds exceed search radius: " + def.id());
-                result.put(CarcassBounds.key(state, data), boxes.stream().map(b -> new double[]{b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ}).toList());
+            }
+            for (var block : heads(def)) {
+                var state = block.defaultBlockState().setValue(HeadBlock.FACING, Direction.NORTH);
+                for (var data : variants(def)) {
+                    ModelBounds mesh = new ModelBounds();
+                    renderHead(state, data, Direction.NORTH, mesh);
+                    result.put(CarcassBounds.key(state, data), boxes(def, state, data, mesh, Vec3.ZERO));
+                    heads++;
+                }
             }
         }
         Files.createDirectories(path.getParent());
         Files.writeString(path, new GsonBuilder().create().toJson(result) + "\n");
         checks.put("bounds_export_entries", result.size() - 1);
+        checks.put("bounds_export_head_entries", heads);
+    }
+
+    /** The measured cubes on the 1/32 grid, each grown by one thirty-second, with nested boxes dropped. */
+    private static List<double[]> boxes(MobDef def, BlockState state, CompoundTag data, ModelBounds mesh, Vec3 offset) {
+        List<AABB> boxes = new ArrayList<>();
+        for (var cube : mesh.cubes()) {
+            var b = cube.move(offset.scale(-1));
+            // One thirty-second block of picking tolerance also makes fins/whiskers targetable.
+            b = new AABB(Math.floor(b.minX * 32) / 32 - .03125, Math.floor(b.minY * 32) / 32 - .03125,
+                    Math.floor(b.minZ * 32) / 32 - .03125, Math.ceil(b.maxX * 32) / 32 + .03125,
+                    Math.ceil(b.maxY * 32) / 32 + .03125, Math.ceil(b.maxZ * 32) / 32 + .03125);
+            AABB candidate = b;
+            if (boxes.stream().anyMatch(old -> contains(old, candidate))) continue;
+            boxes.removeIf(old -> contains(candidate, old));
+            boxes.add(b);
+        }
+        if (boxes.isEmpty()) throw new IllegalStateException("Empty bounds: " + CarcassBounds.key(state, data));
+        for (var b : boxes) if (Math.max(Math.max(Math.abs(b.minX), Math.abs(b.maxX)),
+                Math.max(Math.abs(b.minZ), Math.abs(b.maxZ))) >= CarcassBounds.SEARCH_RADIUS - 1)
+            throw new IllegalStateException("Bounds exceed search radius: " + def.id());
+        return boxes.stream().map(b -> new double[]{b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ}).toList();
     }
 
     private static boolean contains(AABB outer, AABB inner) {

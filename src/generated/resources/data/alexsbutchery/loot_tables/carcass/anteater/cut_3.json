@@ -5,19 +5,11 @@
       "bonus_rolls": 0.0,
       "entries": [
         {
-          "type": "minecraft:item",
-          "functions": [
-            {
-              "add": false,
-              "count": {
-                "type": "minecraft:uniform",
-                "max": 2.0,
-                "min": 1.0
-              },
-              "function": "minecraft:set_count"
-            }
-          ],
-          "name": "alexsbutchery:raw_bushmeat"
+          "type": "alexsbutchery:compat_yield",
+          "entity": "alexsmobs:anteater",
+          "fallback": "alexsbutchery:carcass_native/anteater/cut_3/meat",
+          "group": "meat",
+          "stage": "cut_3"
         }
       ],
       "rolls": 1.0

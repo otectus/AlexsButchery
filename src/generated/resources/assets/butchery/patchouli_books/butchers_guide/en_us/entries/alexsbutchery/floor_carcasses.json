@@ -6,12 +6,16 @@
     {
       "type": "patchouli:spotlight",
       "item": "alexsbutchery:elephant_carcass,alexsbutchery:laviathan_carcass,alexsbutchery:sea_bear_carcass,alexsbutchery:orca_carcass,alexsbutchery:cachalot_whale_carcass,alexsbutchery:giant_squid_carcass,alexsbutchery:warped_mosco_carcass,alexsbutchery:void_worm_carcass",
-      "text": "Elephants, whales, the Laviathan and a few other giants are far too heavy to carry. Their carcass falls where they die. Bleed it with a cleaver right there, 2000 mB of blood, then cut it up in place.",
+      "text": "By default, elephants, whales, the Laviathan and a few other giants create a placed carcass where they die. They cannot hang, so bleed them with a cleaver there for 2000 mB of blood, then cut them up in place.",
       "title": "Where It Falls"
     },
     {
       "type": "patchouli:text",
-      "text": "A blood grate under the carcass still catches the blood; without one it pools on the ground. The Void Worm needs Butchery's boss tool, the netherite cleaver, for the killing blow before it leaves a carcass at all."
+      "text": "Placed-at-death does not forbid transport: breaking a whole giant carcass still recovers its item. A blood grate under it catches the blood; without one it pools. The Void Worm needs the netherite cleaver for the killing blow."
+    },
+    {
+      "type": "patchouli:text",
+      "text": "Server owners can change representation independently in alexsbutchery-server.toml under $(l)carcasses$(): $(l)deathSpawnMode$() is SPECIES_DEFAULT or PLACED_BLOCK; $(l)deathSpawnOverrides$() uses entries such as alexsmobs:moose=PLACED_BLOCK or alexsmobs:elephant=ITEM. Add actual entity IDs to $(l)groundBleedingMobs$() separately to let those fresh carcasses drain while lying down. These world settings require a restart."
     }
   ],
   "read_by_default": true,

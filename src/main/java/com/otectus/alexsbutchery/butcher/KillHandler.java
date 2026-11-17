@@ -2,19 +2,17 @@ package com.otectus.alexsbutchery.butcher;
 
 import com.otectus.alexsbutchery.AlexsButchery;
 import com.otectus.alexsbutchery.advancement.ButcheringTrigger;
-import com.otectus.alexsbutchery.block.AbstractCarcassBlock;
-import com.otectus.alexsbutchery.block.entity.CarcassBlockEntity;
 import com.otectus.alexsbutchery.compat.ButcheryHooks;
+import com.otectus.alexsbutchery.compat.CompatLog;
+import com.otectus.alexsbutchery.compat.CompatState;
 import com.otectus.alexsbutchery.compat.MobSnapshot;
 import com.otectus.alexsbutchery.config.ServerConfig;
+import com.otectus.alexsbutchery.def.DeathSpawnMode;
 import com.otectus.alexsbutchery.def.MobDef;
 import com.otectus.alexsbutchery.def.MobDefs;
-import com.otectus.alexsbutchery.registry.ModBlockEntities;
-import com.otectus.alexsbutchery.registry.ModBlocks;
 import com.otectus.alexsbutchery.registry.ModItems;
 import com.otectus.alexsbutchery.registry.ModTags;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -22,15 +20,17 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.TamableAnimal;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.DirectionalPlaceContext;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Turns a qualifying kill into a carcass. The rules are Butchery's ({@code CowcarcassdropProcedure}): an adult,
@@ -38,11 +38,20 @@ import org.jetbrains.annotations.Nullable;
  * Delight's knives subject to Butchery's own option for them. Unlike Butchery, which deletes vanilla drops one tick
  * later with a command, the drops the carcass yields are removed from the event itself; everything else the mob
  * drops is kept. Nothing changes unless the carcass is actually created.
+ *
+ * <p>Runs in the event's last phase ({@link EventPriority#LOWEST}): other mods' additions at the usual priority, such as
+ * Alex's Mobs Delight re-rolling the death table for its Dimensional Slicer, are in the drop list by then, so an
+ * ordinary meat drop the carcass stands for cannot come back after the filter. What is removed is per species
+ * ({@link CompatState#suppression}): this creature's own replaced parts that are still in
+ * {@code #alexsbutchery:replaced_by_carcass}, the death drops every installed cooking addon's profile declares for the
+ * same product (raw, and cooked by a burning death), and items a pack added to the tag for every carcass kill. Stacks
+ * carrying item data are never removed, so data-bearing rewards (Alex's Mobs Delight's effect-holding seagulls) and
+ * named or enchanted loot survive; items dropped earlier by other mechanics are not touched.
  */
 @Mod.EventBusSubscriber(modid = AlexsButchery.MOD_ID)
 public final class KillHandler {
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onLivingDrops(LivingDropsEvent event) {
         LivingEntity victim = event.getEntity();
         if (!(victim.level() instanceof ServerLevel level)) return;
@@ -57,17 +66,17 @@ public final class KillHandler {
         if (def.bossTool() && !weapon.is(ModTags.Items.BOSS_TOOL)) return;
 
         CompoundTag mobData = MobSnapshot.capture(victim);
-        // A floor carcass that cannot be placed (nothing below but the void) leaves the ordinary drops alone.
-        if (def.floor() && !placeFloorCarcass(level, victim, def, mobData)) return;
-        if (ServerConfig.REPLACE_MOB_DROPS.get()) {
-            event.getDrops().removeIf(drop -> drop.getItem().is(ModTags.Items.REPLACED_BY_CARCASS));
-        }
+        DeathSpawnMode deathMode = CarcassPolicy.current().deathSpawnMode(def);
+        // A refused block conversion leaves every ordinary death drop and awards no carcass progress.
+        if (deathMode == DeathSpawnMode.PLACED_BLOCK
+                && !CarcassPlacement.placeAtDeath(level, victim, killer, def, mobData).succeeded()) return;
+        if (ServerConfig.REPLACE_MOB_DROPS.get()) removeRepresented(event, def, level);
         if (killer instanceof ServerPlayer player) {
             // Butchery grants "The Chosen One" only for Animal and Monster kills with its own cleavers.
             ButcheryHooks.grantAdvancement(player, "firstcarcass");
             ButcheringTrigger.INSTANCE.trigger(player, def, ButcheringTrigger.Action.KILL);
         }
-        if (!def.floor()) {
+        if (deathMode == DeathSpawnMode.ITEM) {
             ItemStack stack = carcassStack(def, mobData);
             ItemEntity item = new ItemEntity(level, victim.getX(), victim.getY(), victim.getZ(), stack);
             item.setDefaultPickUpDelay();
@@ -75,30 +84,29 @@ public final class KillHandler {
         }
     }
 
+    /** Removes the death drops the carcass stands for (see the class comment); returns what was removed. */
+    static List<ItemStack> removeRepresented(LivingDropsEvent event, MobDef def, ServerLevel level) {
+        CompatState state = CompatState.get(level.getServer());
+        Set<Item> species = state != null ? state.suppression(def.entity()) : Set.of();
+        Set<Item> global = state != null ? state.packGlobalRemovals() : Set.of();
+        List<ItemStack> removed = new ArrayList<>();
+        event.getDrops().removeIf(drop -> {
+            ItemStack stack = drop.getItem();
+            if (stack.hasTag()) return false;
+            // Without rules (never on a running server) fall back to the tag alone, as before profiles existed.
+            boolean represented = state == null ? stack.is(ModTags.Items.REPLACED_BY_CARCASS) : species.contains(stack.getItem()) || global.contains(stack.getItem());
+            if (represented) removed.add(stack);
+            return represented;
+        });
+        if (!removed.isEmpty() && ServerConfig.DEBUG_LOGGING.get()) CompatLog.debug("carcass kill of " + def.id() + " removed " + removed);
+        return removed;
+    }
+
     /** A fresh carcass item carrying the mob snapshot in its block entity tag. */
     public static ItemStack carcassStack(MobDef def, CompoundTag mobData) {
         ItemStack stack = new ItemStack(ModItems.of(def).carcass().get());
-        if (!mobData.isEmpty()) {
-            CompoundTag tag = new CompoundTag();
-            tag.put(CarcassBlockEntity.MOB_DATA, mobData);
-            BlockItem.setBlockEntityData(stack, ModBlockEntities.CARCASS.get(), tag);
-        }
+        PortableCarcass.writeMobData(stack, mobData);
         return stack;
-    }
-
-    /**
-     * Floor carcasses are too big to carry: the block comes to rest where the mob died, like Butchery's warden. It is
-     * placed directly where a falling block would land, so the block the mob stood in (a slab, path or carpet) is never
-     * replaced and a landing on one never loses the carcass.
-     */
-    private static boolean placeFloorCarcass(ServerLevel level, LivingEntity victim, MobDef def, CompoundTag mobData) {
-        BlockPos pos = restingPlace(level, victim.blockPosition());
-        if (pos == null) return false;
-        Direction facing = victim.getDirection().getOpposite();
-        BlockState state = ModBlocks.of(def).carcass().get().defaultBlockState().setValue(AbstractCarcassBlock.FACING, facing);
-        if (!level.setBlock(pos, state, Block.UPDATE_ALL)) return false;
-        if (!mobData.isEmpty() && level.getBlockEntity(pos) instanceof CarcassBlockEntity carcass) carcass.setMobData(mobData);
-        return true;
     }
 
     /**
@@ -108,22 +116,7 @@ public final class KillHandler {
      */
     @Nullable
     public static BlockPos restingPlace(ServerLevel level, BlockPos start) {
-        BlockPos pos = start;
-        if (!replaceable(level, pos)) {
-            pos = pos.above();
-            if (!replaceable(level, pos)) return null;
-        }
-        while (pos.getY() > level.getMinBuildHeight()) {
-            BlockPos below = pos.below();
-            if (!replaceable(level, below)) return level.isOutsideBuildHeight(pos) ? null : pos;
-            pos = below;
-        }
-        return null;
-    }
-
-    private static boolean replaceable(ServerLevel level, BlockPos pos) {
-        if (level.isOutsideBuildHeight(pos)) return pos.getY() >= level.getMaxBuildHeight();
-        return level.getBlockState(pos).canBeReplaced(new DirectionalPlaceContext(level, pos, Direction.DOWN, ItemStack.EMPTY, Direction.UP));
+        return CarcassPlacement.restingPlace(level, start);
     }
 
     private KillHandler() {}

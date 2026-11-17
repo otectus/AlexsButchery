@@ -1,0 +1,6 @@
+{
+  "parent": "alexsbutchery:block/rug",
+  "textures": {
+    "pelt": "alexsbutchery:block/rug/white_tiger_pelt"
+  }
+}

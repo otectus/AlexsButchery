@@ -18,7 +18,8 @@ import java.util.function.IntFunction;
 
 /**
  * Measures the posed remaining solid anatomy of a lying carcass once per {@link PoseKey}, so the renderer and the
- * bounds export ground it with one explicit translation: its lowest solid point onto the floor.
+ * bounds export ground it with one explicit translation: its lowest solid point onto the floor. The shared
+ * carcass draw filters fully transparent donor cubes through {@link CubeVisibility} before they reach this capture.
  */
 public final class LyingPose {
     /**

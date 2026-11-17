@@ -12,6 +12,7 @@ mixin {
     add sourceSets.main, "${mod_id}.refmap.json"
     config "${mod_id}.mixins.json"
     config "${mod_id}.client.mixins.json"
+    config "${mod_id}.carryon.mixins.json"
 }
 
 version = mod_version
@@ -22,11 +23,17 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 sourceSets {
     main {
         // Everything the mob table generates (loot tables, recipes, tags, lang, models) lives here; run `runData`.
-        resources { srcDir 'src/generated/resources' }
+        resources {
+            srcDir 'src/generated/resources'
+            exclude '.cache/**'
+        }
     }
     gameTest {
         compileClasspath += sourceSets.main.output + sourceSets.main.compileClasspath
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
+        // The documented datapack examples ride along under compat-examples/ (not data/, so they are never active) and
+        // are parsed by CompatRuleTests with the real profile parser.
+        resources { srcDir 'docs' }
     }
     // Test-only agent mod (alexsbutchery_smoketest): drives a dev client into a fresh flat world, stages carcasses
     // and takes framebuffer screenshots, then quits. Used by runClient -PsmokeTest. Never shipped.
@@ -35,6 +42,22 @@ sourceSets {
         runtimeClasspath += sourceSets.main.output + sourceSets.main.runtimeClasspath
     }
 }
+
+// Optional-mod test profiles. Each flag puts the mod in every dev run; the GameTests and the smoke test fail when the
+// loaded mod set disagrees with the flags, so a missing jar can never turn a profile into a core-only pass.
+def withAlexsMobsDelight = project.hasProperty('withAlexsMobsDelight')
+def withAlexsDelight = project.hasProperty('withAlexsDelight')
+def withFarmersDelight = project.hasProperty('withFarmersDelight') || withAlexsMobsDelight || withAlexsDelight
+def withImmersiveTanning = project.hasProperty('withImmersiveTanning')
+def withOfficialAddon = project.hasProperty('withOfficialAddon')
+def withCarryOn = project.hasProperty('withCarryOn')
+def withJei = !project.hasProperty('withoutJei')
+def withJade = !project.hasProperty('withoutJade')
+def withPatchouli = !project.hasProperty('withoutPatchouli')
+def expectedMods = [farmersdelight: withFarmersDelight, alexsmobsdelight: withAlexsMobsDelight, alexsdelight: withAlexsDelight,
+                    immersive_tanning: withImmersiveTanning, butchery_alexs_mobs: withOfficialAddon, jei: withJei, jade: withJade,
+                    patchouli: withPatchouli, carryon: withCarryOn].collect { k, v -> "${k}=${v}" }.join(',')
+def officialAddonJar = file("libs/${official_addon_jar}.jar")
 
 minecraft {
     mappings channel: 'official', version: minecraft_version
@@ -45,7 +68,12 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             property 'forge.enabledGameTestNamespaces', mod_id
             // GameTests fail when this disagrees with the loaded mods, so the knife tests cannot silently skip.
-            property 'alexsbutchery.gametest.farmersDelight', project.hasProperty('withFarmersDelight').toString()
+            property 'alexsbutchery.gametest.farmersDelight', withFarmersDelight.toString()
+            // The whole optional mod set of this run (mod=true|false), checked by a GameTest and the smoke test.
+            property 'alexsbutchery.test.expectedMods', expectedMods
+            // -PnativeProbe: also register the development probe of Butchery's own carcass handlers (NativeButcheryProbe),
+            // which writes run-gametest/native-butchery-probe-<version>.json.
+            property 'alexsbutchery.gametest.nativeProbe', project.hasProperty('nativeProbe').toString()
             // Dependency mixins (Citadel, Alex's Mobs) ship SRG-named refmaps; remap them to the dev names.
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
@@ -67,6 +95,11 @@ minecraft {
                 property 'alexsbutchery.smoketest.groundReview', project.findProperty('groundReview') ?: ''
                 // -PremoteServer=host:port: interaction checks against a dedicated server, run/smoketest/remote-result.json.
                 property 'alexsbutchery.smoketest.remoteServer', project.findProperty('remoteServer') ?: ''
+                // -PcompatWorlds: two worlds with different compatibility settings in one process, compat-worlds-result.json.
+                property 'alexsbutchery.smoketest.compatWorlds', project.hasProperty('compatWorlds').toString()
+                // Presentation galleries. Carry review also requires -PwithCarryOn so the pinned carrier is loaded.
+                property 'alexsbutchery.smoketest.itemReview', project.hasProperty('itemReview').toString()
+                property 'alexsbutchery.smoketest.carryReview', project.hasProperty('carryReview').toString()
                 ['perfSeconds', 'perfWarmup', 'perfSamples'].each { name ->
                     if (project.hasProperty(name)) property "alexsbutchery.smoketest.${name}", project.property(name)
                 }
@@ -124,19 +157,33 @@ dependencies {
     implementation fg.deobf("maven.modrinth:alexs-mobs:${alexsmobs_modrinth_id}")
     implementation fg.deobf("maven.modrinth:citadel:${citadel_modrinth_id}")
 
+    // Carry On is an optional client integration. Compile against the exact inspected 1.20.1 API, but put it in a
+    // dev run only with -PwithCarryOn; neither it nor MixinExtras is bundled by Alex's Butchery.
+    compileOnly fg.deobf("maven.modrinth:carry-on:${carryon_modrinth_id}")
+    compileOnly "io.github.llamalad7:mixinextras-common:${mixinextras_compile_version}"
+    if (withCarryOn) runtimeOnly fg.deobf("maven.modrinth:carry-on:${carryon_modrinth_id}")
+
     // Jade finds compat/jade by annotation; Patchouli reads the guide pages we ship under Butchery's book. Both are
     // optional at runtime and loaded in dev so the smoke test and GameTests exercise the integrations.
     compileOnly fg.deobf("curse.maven:jade-324717:${jade_curse_file}")
-    runtimeOnly fg.deobf("curse.maven:jade-324717:${jade_curse_file}")
-    runtimeOnly fg.deobf("maven.modrinth:patchouli:${patchouli_version}")
+    if (withJade) runtimeOnly fg.deobf("curse.maven:jade-324717:${jade_curse_file}")
+    if (withPatchouli) runtimeOnly fg.deobf("maven.modrinth:patchouli:${patchouli_version}")
 
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    if (withJei) runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
 
     // -PwithFarmersDelight: Farmer's Delight in the dev runs, for the knife and cutting-board tests. Data-only in the mod.
-    if (project.hasProperty('withFarmersDelight')) {
+    if (withFarmersDelight) {
         runtimeOnly fg.deobf("maven.modrinth:farmers-delight:${farmersdelight_version}")
+    }
+    // The cooking addons and Immersive Tanning are never compiled against: profiles, recipes and tags name their items.
+    if (withAlexsMobsDelight) runtimeOnly fg.deobf("curse.maven:alexs-mobs-delight-${alexsmobsdelight_curse}")
+    if (withAlexsDelight) runtimeOnly fg.deobf("curse.maven:alexs-delight-${alexsdelight_curse}")
+    if (withImmersiveTanning) runtimeOnly fg.deobf("curse.maven:immersive-tanning-${immersive_tanning_curse}")
+    if (withOfficialAddon) {
+        if (!officialAddonJar.exists()) throw new GradleException("-PwithOfficialAddon needs ${officialAddonJar} (the official Butchery: Alex's Mobs addon).")
+        runtimeOnly fg.deobf("blank:${official_addon_jar.replaceFirst('-.*', '')}:${official_addon_jar.replaceFirst('^[^-]*-', '')}")
     }
 }
 
@@ -164,14 +211,139 @@ tasks.named('processSmokeTestResources', ProcessResources).configure {
 }
 
 // Every GameTest run starts from a fresh world: saved item entities load after a test structure is cleared, so drops
-// from an earlier run of the same layout would otherwise land in a test's counting area.
+// from an earlier run of the same layout would otherwise land in a test's counting area. The server exits normally
+// whatever the outcome, so the task reads its summary and fails unless every registered test ran and passed.
 tasks.matching { it.name == 'runGameTestServer' }.configureEach {
-    doFirst { delete file('run-gametest/world') }
+    doFirst {
+        delete file('run-gametest/world')
+        delete file('run-gametest/gametest-registered.txt')
+    }
+    doLast {
+        def log = file('run-gametest/logs/latest.log')
+        def registered = file('run-gametest/gametest-registered.txt')
+        if (!log.exists()) throw new GradleException("No GameTest log at ${log}")
+        def text = log.getText('UTF-8')
+        def failed = (text =~ /(\d+) required tests failed/)
+        if (failed.find()) throw new GradleException("${failed.group(1)} required GameTests failed; see ${log}")
+        def passed = (text =~ /All (\d+) required tests passed/)
+        if (!passed.find()) throw new GradleException("The GameTest server did not report a passing summary; see ${log}")
+        if (!registered.exists()) throw new GradleException("The GameTests did not record what they registered (${registered})")
+        int expected = registered.readLines().findAll { it.trim() }.size()
+        int ran = passed.group(1) as int
+        if (ran != expected) throw new GradleException("${expected} GameTests were registered but ${ran} passed; see ${log}")
+        logger.lifecycle("GameTests: all ${ran} registered tests passed (${expectedMods})")
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// A client process may exit normally after a failed smoke assertion. Require this run's fresh result as well.
+if (project.hasProperty('smokeTest') && !['perfBench', 'saveCompat', 'groundReview', 'remoteServer', 'compatWorlds'].any { project.hasProperty(it) }) {
+    tasks.matching { it.name == 'runClient' }.configureEach {
+        def result = file('run/smoketest/smoketest-result.json')
+        doFirst { delete result }
+        doLast {
+            if (!result.isFile()) throw new GradleException("Smoke client produced no result: ${result}")
+            def report = new groovy.json.JsonSlurper().parse(result)
+            if (report.pass != true) throw new GradleException("Smoke client failed: ${result}; ${report.reason}")
+            logger.lifecycle("Smoke client: passed (${report.reason})")
+        }
+    }
+}
+
+// The posed anatomy export is written by the client smoke test (runClient -PsmokeTest -PexportBounds, then copied from
+// run/smoketest/), never by runData, and lives in src/main/resources so a data run cannot delete it. Packaging fails
+// when it is missing, empty or malformed, lacks a generated carcass form, or records other inputs than these sources:
+// the geometry revision, the pose profiles and the Alex's Mobs and Citadel versions on the classpath.
+def carcassBoundsFile = file('src/main/resources/data/alexsbutchery/carcass_bounds.json')
+def carcassBoundsRevision = file('src/main/java/com/otectus/alexsbutchery/block/CarcassBounds.java')
+def poseProfileDir = file('src/main/resources/assets/alexsbutchery/pose_profiles')
+def generatedBlockstates = file('src/generated/resources/assets/alexsbutchery/blockstates')
+tasks.register('checkCarcassBounds') {
+    group = 'verification'
+    description = 'Fails unless carcass_bounds.json is present, complete and exported from the current sources.'
+    inputs.files(carcassBoundsFile, carcassBoundsRevision)
+    inputs.files(fileTree(poseProfileDir)).withPropertyName('poseProfiles')
+    inputs.files(fileTree(generatedBlockstates)).withPropertyName('blockstates')
+    def marker = layout.buildDirectory.file('checkCarcassBounds/ok')
+    outputs.file(marker)
+    def classpath = configurations.runtimeClasspath
+    doLast {
+        def fail = { String why ->
+            throw new GradleException("${carcassBoundsFile}: ${why}. Export it with runClient -PsmokeTest -PexportBounds and copy "
+                    + "run/smoketest/carcass_bounds.json there (see CLAUDE.md).")
+        }
+        if (!carcassBoundsFile.isFile()) fail('missing')
+        if (carcassBoundsFile.length() == 0) fail('empty')
+        def json
+        try {
+            json = new groovy.json.JsonSlurper().parse(carcassBoundsFile, 'UTF-8')
+        } catch (Exception e) {
+            fail("not valid JSON (${e.message})")
+        }
+        if (!(json instanceof Map)) fail('not a JSON object')
+        def recorded = json['_inputs']
+        if (!(recorded instanceof Map)) fail('it does not record its inputs (_inputs)')
+
+        def revision = (carcassBoundsRevision.getText('UTF-8') =~ /GEOMETRY_REVISION\s*=\s*(\d+)/)
+        if (!revision.find()) throw new GradleException("No GEOMETRY_REVISION in ${carcassBoundsRevision}")
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        poseProfileDir.listFiles().findAll { it.name.endsWith('.json') }.sort { it.name }.each { profile ->
+            digest.update((profile.name - '.json' + '\n').getBytes('UTF-8'))
+            digest.update(profile.bytes)
+        }
+        def expected = [revision: revision.group(1) as int, pose_profiles_sha256: digest.digest().encodeHex().toString()]
+        ['alexsmobs', 'citadel'].each { modId ->
+            def version = null
+            for (File jar : classpath.files.findAll { it.name.endsWith('.jar') }) {
+                def zip = new java.util.zip.ZipFile(jar)
+                try {
+                    def entry = zip.getEntry('META-INF/mods.toml')
+                    if (entry == null) continue
+                    def toml = zip.getInputStream(entry).getText('UTF-8')
+                    def at = toml.indexOf("modId=\"${modId}\"")
+                    if (at < 0 || toml.lastIndexOf('[[mods]]', at) < 0 || toml.indexOf('[[dependencies', 0) in 0..<at) continue
+                    def found = (toml.substring(at) =~ /(?m)^\s*version\s*=\s*"([^"]+)"/)
+                    if (found.find()) { version = found.group(1); break }
+                } finally { zip.close() }
+            }
+            if (version == null) throw new GradleException("${modId} is not on the runtime classpath; cannot check carcass_bounds.json")
+            expected[modId] = version
+        }
+        def stale = expected.findAll { k, v -> recorded[k] != v }.collect { k, v -> "${k} ${recorded[k]} (sources: ${v})" }
+        if (!stale.isEmpty()) fail("exported from other inputs: ${stale.join(', ')}")
+
+        // Every generated carcass form needs anatomy of its own; which appearance variants it has is the exporter's choice
+        // (a catfish is only ever size0-2), and a variant without an entry falls back to the form's default at runtime.
+        def forms = json.keySet().findAll { it != '_inputs' }.collect { it.substring(0, it.lastIndexOf('/')) } as Set
+        def missing = []
+        generatedBlockstates.listFiles().findAll { it.name ==~ /.*_(carcass|skeleton)\.json/ }.sort { it.name }.each { stateFile ->
+            def block = stateFile.name - '.json'
+            def variants = new groovy.json.JsonSlurper().parse(stateFile, 'UTF-8')['variants'] ?: [:]
+            def stages = variants.keySet().collect { key -> (key =~ /blockstate=(\d+)/).with { it.find() ? it.group(1) : null } }.findAll().unique()
+            stages.each { stage -> if (!forms.contains("${block}/${stage}".toString())) missing << "${block}/${stage}" }
+        }
+        // Heads and head mounts select by their drawn head too (forms "head" and "mount").
+        generatedBlockstates.listFiles().findAll { it.name ==~ /.*_head(_mount)?\.json/ }.sort { it.name }.each { stateFile ->
+            def block = stateFile.name - '.json'
+            def form = "${block}/${block.endsWith('_head_mount') ? 'mount' : 'head'}".toString()
+            if (!forms.contains(form)) missing << form
+        }
+        if (!missing.isEmpty()) fail("no anatomy for ${missing.size()} generated forms, for example ${missing.take(5)}")
+        def malformed = json.findAll { k, v -> k != '_inputs' && !(v instanceof List && !v.isEmpty()
+                && v.every { box -> box instanceof List && box.size() == 6 && box.every { it instanceof Number }
+                && box[0] <= box[3] && box[1] <= box[4] && box[2] <= box[5] }) }.keySet()
+        if (!malformed.isEmpty()) fail("${malformed.size()} entries are not lists of [minX, minY, minZ, maxX, maxY, maxZ] boxes, for example ${malformed.take(5)}")
+        def out = marker.get().asFile
+        out.parentFile.mkdirs()
+        out.text = "${json.size() - 1} anatomy entries from ${recorded}\n"
+        logger.lifecycle("carcass_bounds.json: ${json.size() - 1} anatomy entries, exported from the current sources")
+    }
+}
+tasks.named('jar') { dependsOn 'checkCarcassBounds' }
+tasks.named('check') { dependsOn 'checkCarcassBounds' }
 
 // The smoke-test agent as a reobfuscated jar, for tools/packtest/ultima_pack_test.py against the Ultima modpack. Never shipped.
 tasks.register('smokeTestJar', Jar) {
@@ -191,6 +363,6 @@ tasks.named('jar', Jar).configure {
     manifest.attributes('Specification-Title': mod_id, 'Specification-Vendor': mod_authors,
                         'Specification-Version': '1', 'Implementation-Title': project.name,
                         'Implementation-Version': mod_version, 'Implementation-Vendor': mod_authors,
-                        'MixinConfigs': "${mod_id}.mixins.json,${mod_id}.client.mixins.json")
+                        'MixinConfigs': "${mod_id}.mixins.json,${mod_id}.client.mixins.json,${mod_id}.carryon.mixins.json")
     finalizedBy 'reobfJar'
 }

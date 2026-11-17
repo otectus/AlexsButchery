@@ -4,11 +4,15 @@ import com.mojang.logging.LogUtils;
 import com.otectus.alexsbutchery.advancement.ButcheringTrigger;
 import com.otectus.alexsbutchery.client.ClientSetup;
 import com.otectus.alexsbutchery.compat.ButcheryHooks;
+import com.otectus.alexsbutchery.compat.CompatNetwork;
+import com.otectus.alexsbutchery.butcher.CarcassPolicyNetwork;
 import com.otectus.alexsbutchery.config.ClientConfig;
 import com.otectus.alexsbutchery.config.ServerConfig;
 import com.otectus.alexsbutchery.registry.ModBlockEntities;
 import com.otectus.alexsbutchery.registry.ModBlocks;
 import com.otectus.alexsbutchery.registry.ModItems;
+import com.otectus.alexsbutchery.registry.ModLootEntries;
+import com.otectus.alexsbutchery.registry.ModRecipeSerializers;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
@@ -32,6 +36,9 @@ public class AlexsButchery {
         ModBlocks.BLOCKS.register(modBus);
         ModItems.ITEMS.register(modBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modBus);
+        ModLootEntries.ENTRIES.register(modBus);
+        ModLootEntries.CONDITIONS.register(modBus);
+        ModRecipeSerializers.SERIALIZERS.register(modBus);
 
         modBus.addListener(AlexsButchery::commonSetup);
 
@@ -44,7 +51,10 @@ public class AlexsButchery {
     private static void commonSetup(FMLCommonSetupEvent event) {
         // The vanilla trigger map is a plain HashMap and setup runs in parallel across mods.
         event.enqueueWork(() -> CriteriaTriggers.register(ButcheringTrigger.INSTANCE));
+        event.enqueueWork(CompatNetwork::register);
+        event.enqueueWork(CarcassPolicyNetwork::register);
         ButcheryHooks.resolveOptionalConfig();
+        ButcheryHooks.verifyTaxidermyBridge();
     }
 
     public static ResourceLocation id(String path) {

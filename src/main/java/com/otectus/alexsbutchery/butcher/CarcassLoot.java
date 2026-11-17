@@ -1,6 +1,5 @@
 package com.otectus.alexsbutchery.butcher;
 
-import com.otectus.alexsbutchery.compat.Substitutions;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -20,8 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Rolls a butchering stage's loot table as a block drop (origin, tool, state, player), swaps in another mod's
- * equivalent items where one is installed, and spawns the result.
+ * Rolls a butchering stage's loot table as a block drop (origin, tool, state, player, the carcass block entity with the
+ * mob snapshot) and spawns the result. Which mod's items a stage yields is decided inside the table, by its
+ * {@code alexsbutchery:compat_yield} entries; the result is never rewritten afterwards, so a pack's own stage table yields
+ * exactly what it says and nothing is transformed twice.
  */
 public final class CarcassLoot {
 
@@ -38,7 +39,7 @@ public final class CarcassLoot {
                 .withOptionalParameter(LootContextParams.BLOCK_ENTITY, blockEntity)
                 .create(LootContextParamSets.BLOCK);
         for (int i = 0; i < Math.max(1, rolls); i++) {
-            for (ItemStack stack : lootTable.getRandomItems(params)) out.add(Substitutions.apply(stack));
+            out.addAll(lootTable.getRandomItems(params));
         }
         return out;
     }

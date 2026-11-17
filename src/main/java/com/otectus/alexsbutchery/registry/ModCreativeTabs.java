@@ -1,14 +1,18 @@
 package com.otectus.alexsbutchery.registry;
 
 import com.otectus.alexsbutchery.AlexsButchery;
-import com.otectus.alexsbutchery.compat.Substitutions;
+import com.otectus.alexsbutchery.compat.CompatView;
 import com.otectus.alexsbutchery.def.ItemDefs;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Our items live in Butchery's own creative tabs, where players already look for carcasses and trophies. */
+/**
+ * Our items live in Butchery's own creative tabs, where players already look for carcasses and trophies. A meat, shell
+ * or trophy that no creature yields on the connected server (every source replaced by a cooking addon's item) is left
+ * out of the tabs; it stays registered, and existing stacks keep their recipes and stay findable in JEI.
+ */
 @Mod.EventBusSubscriber(modid = AlexsButchery.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ModCreativeTabs {
     private static final ResourceLocation BUTCHERY_CARCASSES = new ResourceLocation("butchery", "butcherycarcasses");
@@ -37,13 +41,19 @@ public final class ModCreativeTabs {
             }
         } else if (tab.equals(BUTCHERY_FOOD)) {
             for (ItemDefs.ItemDef def : ItemDefs.all()) {
-                if (def.food() && !Substitutions.isReplaced(ModItems.simple(def.id()).get())) event.accept(ModItems.simple(def.id()).get());
+                if (def.food() && !hidden(def)) event.accept(ModItems.simple(def.id()).get());
             }
         } else if (tab.equals(BUTCHERY_ITEMS)) {
             for (ItemDefs.ItemDef def : ItemDefs.all()) {
-                if (!def.food() && !Substitutions.isReplaced(ModItems.simple(def.id()).get())) event.accept(ModItems.simple(def.id()).get());
+                if (!def.food() && !hidden(def)) event.accept(ModItems.simple(def.id()).get());
             }
         }
+    }
+
+    /** Hidden while the connected server's view says no creature yields the item; shown without a view. */
+    private static boolean hidden(ItemDefs.ItemDef def) {
+        CompatView view = CompatView.received();
+        return view != null && view.hiddenItems().contains(AlexsButchery.id(def.id()));
     }
 
     private ModCreativeTabs() {}

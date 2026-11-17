@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "conditions": [
+    {
+      "type": "forge:mod_loaded",
+      "modid": "alexsmobsdelight"
+    }
+  ],
+  "group": "alexsbutchery_compat",
+  "ingredients": [
+    {
+      "type": "forge:nbt",
+      "count": 1,
+      "item": "alexsbutchery:cooked_tusklin_meat"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "alexsmobsdelight:cooked_tusklin_meat"
+  }
+}
